@@ -7,532 +7,358 @@
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <style>
     :root {
-      --green: #00ff41;
-      --green-dim: #00a827;
-      --green-glow: rgba(0, 255, 65, 0.15);
-      --green-faint: rgba(0, 255, 65, 0.05);
-      --amber: #ffb300;
-      --red: #ff4444;
-      --bg: #020d02;
+      --green: #00ff41; --green-dim: #00a827;
+      --green-glow: rgba(0,255,65,0.15); --green-faint: rgba(0,255,65,0.05);
+      --amber: #ffb300; --red: #ff4444; --bg: #020d02;
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html, body {
-      background: var(--bg);
-      color: var(--green);
-      font-family: 'Share Tech Mono', monospace;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 2px,
-        rgba(0,0,0,0.22) 2px,
-        rgba(0,0,0,0.22) 4px
-      );
-      pointer-events: none;
-      z-index: 1000;
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%);
-      pointer-events: none;
-      z-index: 999;
-    }
-
-    @keyframes flicker {
-      0%, 89%, 91%, 93%, 100% { opacity: 1; }
-      90%, 92% { opacity: 0.88; }
-    }
-
-    @keyframes blink {
-      0%, 49% { opacity: 1; }
-      50%, 100% { opacity: 0; }
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(14px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes glow-pulse {
-      0%, 100% { text-shadow: 0 0 8px var(--green), 0 0 20px var(--green-dim); }
-      50% { text-shadow: 0 0 18px var(--green), 0 0 50px var(--green-dim), 0 0 80px rgba(0,255,65,0.2); }
-    }
-
-    @keyframes scroll-in {
-      from { opacity: 0; max-height: 0; }
-      to { opacity: 1; max-height: 2000px; }
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem 5rem;
-      animation: flicker 12s infinite;
-    }
-
-    /* ── HEADER ── */
-    .header {
-      border: 1px solid var(--green-dim);
-      padding: 2rem 2rem 1.5rem;
-      margin-bottom: 2rem;
-      background: var(--green-faint);
-      box-shadow: 0 0 40px var(--green-glow), inset 0 0 40px rgba(0,255,65,0.03);
-      animation: fadeInUp 0.6s ease both;
-    }
-
-    .ascii-title {
-      font-family: 'VT323', monospace;
-      font-size: clamp(2.8rem, 6vw, 4.4rem);
-      line-height: 1;
-      color: var(--green);
-      animation: glow-pulse 5s ease-in-out infinite;
-      letter-spacing: 0.06em;
-    }
-
-    .header-tagline {
-      font-size: 0.78rem;
-      color: var(--green-dim);
-      margin-top: 0.5rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .status-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      margin-top: 1.2rem;
-      padding-top: 1rem;
-      border-top: 1px solid #003300;
-      font-size: 0.75rem;
-    }
-
-    .s-item { color: var(--green-dim); }
-    .s-item .v { color: var(--green); }
-    .s-item .v.warn { color: var(--amber); }
-    .s-item .v.high { color: var(--red); }
-
-    /* ── ARTEMIS BANNER ── */
-    .artemis-banner {
-      border: 1px solid var(--amber);
-      padding: 1rem 1.5rem;
-      margin-bottom: 2rem;
-      background: rgba(255, 179, 0, 0.04);
-      box-shadow: 0 0 20px rgba(255,179,0,0.1);
-      animation: fadeInUp 0.6s 0.1s ease both;
-      font-size: 0.82rem;
-      line-height: 1.8;
-      color: var(--amber);
-    }
-
-    .artemis-banner .label {
-      font-family: 'VT323', monospace;
-      font-size: 1.2rem;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.4rem;
-      display: block;
-    }
-
-    .artemis-banner .crew {
-      color: #ffd055;
-      font-size: 0.78rem;
-      margin-top: 0.4rem;
-    }
-
-    /* ── SECTION ── */
-    .section {
-      margin-bottom: 1.8rem;
-      animation: fadeInUp 0.7s ease both;
-    }
-
-    .section:nth-child(3) { animation-delay: 0.15s; }
-    .section:nth-child(4) { animation-delay: 0.2s; }
-    .section:nth-child(5) { animation-delay: 0.25s; }
-    .section:nth-child(6) { animation-delay: 0.3s; }
-    .section:nth-child(7) { animation-delay: 0.35s; }
-
-    .section-label {
-      font-size: 0.68rem;
-      color: var(--green-dim);
-      letter-spacing: 0.18em;
-      margin-bottom: 0.6rem;
-      text-transform: uppercase;
-    }
-    .section-label::before { content: '▶ '; color: var(--green); }
-
-    .panel {
-      border: 1px solid var(--green-dim);
-      padding: 1.4rem;
-      background: var(--green-faint);
-    }
-
-    /* ── STATS GRID ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-    }
-
-    .stat-card {
-      border: 1px solid var(--green-dim);
-      padding: 1rem;
-      background: #000;
-      text-align: center;
-      transition: box-shadow 0.2s, border-color 0.2s;
-      cursor: default;
-    }
-
-    .stat-card:hover {
-      box-shadow: 0 0 20px var(--green-glow);
-      border-color: var(--green);
-    }
-
-    .stat-num {
-      font-family: 'VT323', monospace;
-      font-size: 2.6rem;
-      color: var(--green);
-      text-shadow: 0 0 12px var(--green);
-      display: block;
-      line-height: 1;
-    }
-    .stat-num.warn { color: var(--amber); text-shadow: 0 0 12px var(--amber); }
-
-    .stat-label {
-      font-size: 0.65rem;
-      color: var(--green-dim);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-top: 0.4rem;
-    }
-
-    /* ── STATION TABLE ── */
-    .tbl {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.74rem;
-    }
-
-    .tbl th {
-      color: var(--green-dim);
-      text-align: left;
-      padding: 0.35rem 0.7rem;
-      border-bottom: 1px solid var(--green-dim);
-      font-weight: normal;
-      letter-spacing: 0.1em;
-      font-size: 0.65rem;
-    }
-
-    .tbl td {
-      padding: 0.5rem 0.7rem;
-      border-bottom: 1px solid #001a00;
-      color: var(--green);
-    }
-
-    .tbl tr:hover td { background: rgba(0,255,65,0.04); }
-
-    .badge {
-      display: inline-block;
-      padding: 0.1rem 0.45rem;
-      font-size: 0.62rem;
-      letter-spacing: 0.08em;
-    }
-    .badge-ok  { border: 1px solid #004400; color: var(--green-dim); }
-    .badge-warn { border: 1px solid var(--amber); color: var(--amber); }
-    .badge-high { border: 1px solid var(--red); color: var(--red); text-shadow: 0 0 6px rgba(255,68,68,0.4); }
-
-    /* ── REPORT BLOCK ── */
-    .report-block {
-      background: #000;
-      border: 1px solid #002200;
-      padding: 1.2rem 1rem;
-      font-size: 0.7rem;
-      line-height: 1.65;
-      overflow-x: auto;
-      white-space: pre;
-      color: var(--green);
-      text-shadow: 0 0 3px rgba(0,255,65,0.4);
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
-    }
-
-    .report-block .hl { color: #00ff41; }
-    .report-block .al { color: var(--amber); text-shadow: 0 0 6px var(--amber); }
-    .report-block .dm { color: var(--green-dim); }
-
-    /* ── CODE BLOCK ── */
-    .code-block {
-      background: #000;
-      border: 1px solid #002200;
-      padding: 1rem 1.2rem;
-      font-size: 0.76rem;
-      line-height: 1.85;
-      color: var(--green);
-      overflow-x: auto;
-    }
-    .code-block .p { color: var(--amber); }
-    .code-block .c { color: var(--green-dim); }
-    .code-block .cmd { color: #00ff41; }
-
-    /* ── DESCRIPTION ── */
-    .desc {
-      font-size: 0.83rem;
-      line-height: 1.9;
-      color: var(--green-dim);
-    }
-    .desc p { margin-bottom: 0.7rem; }
-    .desc strong { color: var(--green); }
-    .desc a { color: var(--green); text-decoration: none; }
-    .desc a:hover { text-shadow: 0 0 8px var(--green); }
-
-    /* ── LIVE DATE ── */
-    .live-date {
-      font-family: 'VT323', monospace;
-      font-size: 1.1rem;
-      color: var(--green-dim);
-      margin-bottom: 0.3rem;
-    }
-
-    /* ── FOOTER ── */
-    .footer {
-      margin-top: 3rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid #002200;
-      font-size: 0.7rem;
-      color: var(--green-dim);
-      text-align: center;
-      letter-spacing: 0.1em;
-      line-height: 2;
-    }
-    .footer a { color: var(--green-dim); text-decoration: none; }
-    .footer a:hover { color: var(--green); }
-
-    .cursor {
-      display: inline-block;
-      width: 0.55em;
-      height: 1em;
-      background: var(--green);
-      animation: blink 1s step-end infinite;
-      vertical-align: text-bottom;
-      margin-left: 2px;
-    }
-
-    hr.div {
-      border: none;
-      border-top: 1px solid #002200;
-      margin: 2rem 0;
-    }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: #000; }
-    ::-webkit-scrollbar-thumb { background: var(--green-dim); }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html,body { background:var(--bg); color:var(--green); font-family:'Share Tech Mono',monospace; min-height:100vh; overflow-x:hidden; }
+    body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,.22) 2px,rgba(0,0,0,.22) 4px); pointer-events:none; z-index:1000; }
+    body::after  { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65) 100%); pointer-events:none; z-index:999; }
+    @keyframes flicker { 0%,89%,91%,93%,100%{opacity:1} 90%,92%{opacity:.88} }
+    @keyframes blink   { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+    @keyframes fadeInUp{ from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes glow-pulse{ 0%,100%{text-shadow:0 0 8px var(--green),0 0 20px var(--green-dim)} 50%{text-shadow:0 0 18px var(--green),0 0 50px var(--green-dim)} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .container { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 5rem; animation:flicker 12s infinite; }
+    .header { border:1px solid var(--green-dim); padding:2rem 2rem 1.5rem; margin-bottom:2rem; background:var(--green-faint); box-shadow:0 0 40px var(--green-glow); animation:fadeInUp .6s ease both; }
+    .ascii-title { font-family:'VT323',monospace; font-size:clamp(2.8rem,6vw,4.4rem); line-height:1; color:var(--green); animation:glow-pulse 5s ease-in-out infinite; letter-spacing:.06em; }
+    .header-tagline { font-size:.78rem; color:var(--green-dim); margin-top:.5rem; letter-spacing:.14em; text-transform:uppercase; }
+    .status-bar { display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1.2rem; padding-top:1rem; border-top:1px solid #003300; font-size:.75rem; }
+    .s-item { color:var(--green-dim); } .s-item .v { color:var(--green); } .s-item .v.warn { color:var(--amber); }
+    .artemis-banner { border:1px solid var(--amber); padding:1rem 1.5rem; margin-bottom:2rem; background:rgba(255,179,0,.04); font-size:.82rem; line-height:1.8; color:var(--amber); animation:fadeInUp .6s .1s ease both; }
+    .artemis-banner .label { font-family:'VT323',monospace; font-size:1.2rem; letter-spacing:.1em; margin-bottom:.4rem; display:block; }
+    .artemis-banner .crew { color:#ffd055; font-size:.78rem; margin-top:.4rem; }
+    .section { margin-bottom:1.8rem; animation:fadeInUp .7s ease both; }
+    .section-label { font-size:.68rem; color:var(--green-dim); letter-spacing:.18em; margin-bottom:.6rem; text-transform:uppercase; }
+    .section-label::before { content:'▶ '; color:var(--green); }
+    .panel { border:1px solid var(--green-dim); padding:1.4rem; background:var(--green-faint); }
+    .loading { text-align:center; padding:2rem; color:var(--green-dim); font-size:.85rem; }
+    .spinner { display:inline-block; width:1em; height:1em; border:2px solid var(--green-dim); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:.5rem; }
+    .error-msg { color:var(--red); font-size:.8rem; padding:1rem; border:1px solid var(--red); background:rgba(255,68,68,.05); }
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
+    .stat-card { border:1px solid var(--green-dim); padding:1rem; background:#000; text-align:center; transition:box-shadow .2s,border-color .2s; }
+    .stat-card:hover { box-shadow:0 0 20px var(--green-glow); border-color:var(--green); }
+    .stat-num { font-family:'VT323',monospace; font-size:2.6rem; color:var(--green); text-shadow:0 0 12px var(--green); display:block; line-height:1; }
+    .stat-num.warn { color:var(--amber); text-shadow:0 0 12px var(--amber); }
+    .stat-label { font-size:.65rem; color:var(--green-dim); letter-spacing:.1em; text-transform:uppercase; margin-top:.4rem; }
+    .tbl { width:100%; border-collapse:collapse; font-size:.72rem; }
+    .tbl th { color:var(--green-dim); text-align:left; padding:.35rem .6rem; border-bottom:1px solid var(--green-dim); font-weight:normal; letter-spacing:.1em; font-size:.62rem; white-space:nowrap; }
+    .tbl td { padding:.45rem .6rem; border-bottom:1px solid #001a00; color:var(--green); white-space:nowrap; }
+    .tbl tr:hover td { background:rgba(0,255,65,.04); }
+    .badge { display:inline-block; padding:.1rem .45rem; font-size:.62rem; letter-spacing:.06em; }
+    .badge-ok    { border:1px solid #004400; color:var(--green-dim); }
+    .badge-above { border:1px solid var(--green); color:var(--green); }
+    .badge-below { border:1px solid var(--amber); color:var(--amber); }
+    .badge-high  { border:1px solid var(--red); color:var(--red); }
+    .badge-low   { border:1px solid var(--amber); color:var(--amber); }
+    .trend-rising{color:var(--green)} .trend-falling{color:var(--amber)} .trend-stable{color:var(--green-dim)}
+    .basin-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
+    .basin-card { border:1px solid var(--green-dim); padding:1rem; background:#000; }
+    .basin-name { font-family:'VT323',monospace; font-size:1.4rem; color:var(--green); text-shadow:0 0 8px var(--green); }
+    .basin-total { font-size:.75rem; color:var(--green-dim); margin-top:.3rem; }
+    .basin-total span { color:var(--green); }
+    .sparkline-row { display:flex; align-items:center; gap:.8rem; padding:.4rem 0; border-bottom:1px solid #001a00; font-size:.72rem; }
+    .sparkline-row:last-child { border-bottom:none; }
+    .spark-name { width:220px; flex-shrink:0; color:var(--green-dim); overflow:hidden; text-overflow:ellipsis; }
+    .spark-canvas { flex:1; height:32px; }
+    .spark-val { width:80px; text-align:right; flex-shrink:0; color:var(--green); }
+    .code-block { background:#000; border:1px solid #002200; padding:1rem 1.2rem; font-size:.76rem; line-height:1.85; color:var(--green); overflow-x:auto; }
+    .code-block .p{color:var(--amber)} .code-block .c{color:var(--green-dim)} .code-block .cmd{color:#00ff41}
+    .desc { font-size:.83rem; line-height:1.9; color:var(--green-dim); }
+    .desc p { margin-bottom:.7rem; } .desc strong{color:var(--green)} .desc a{color:var(--green);text-decoration:none;}
+    .footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid #002200; font-size:.7rem; color:var(--green-dim); text-align:center; letter-spacing:.1em; line-height:2; }
+    .footer a{color:var(--green-dim);text-decoration:none;} .footer a:hover{color:var(--green);}
+    .cursor { display:inline-block; width:.55em; height:1em; background:var(--green); animation:blink 1s step-end infinite; vertical-align:text-bottom; margin-left:2px; }
+    hr.div { border:none; border-top:1px solid #002200; margin:2rem 0; }
+    ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:#000} ::-webkit-scrollbar-thumb{background:var(--green-dim)}
   </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="ascii-title">SIERRA&#8209;FLOW</div>
-    <div class="header-tagline">USGS Streamflow Data Processor &nbsp;·&nbsp; COBOL &nbsp;·&nbsp; Sierra Nevada Watershed Analysis System</div>
+    <div class="header-tagline">USGS Streamflow Data Processor &nbsp;·&nbsp; COBOL v2 &nbsp;·&nbsp; Sierra Nevada Watershed Analysis System</div>
     <div class="status-bar">
       <div class="s-item">LANGUAGE: <span class="v">GnuCOBOL 3.2</span></div>
-      <div class="s-item">STATIONS: <span class="v">8</span></div>
-      <div class="s-item">RECORDS: <span class="v">96</span></div>
-      <div class="s-item">ALERTS: <span class="v warn">24</span></div>
-      <div class="s-item">CI/CD: <span class="v">GitHub Actions</span></div>
-      <div class="s-item">LAST RUN: <span class="v" id="last-run">—</span></div>
-      <div class="s-item">STATUS: <span class="v">NORMAL TERMINATION</span><span class="cursor"></span></div>
+      <div class="s-item">STATIONS: <span class="v" id="hdr-stations">—</span></div>
+      <div class="s-item">RECORDS: <span class="v" id="hdr-records">—</span></div>
+      <div class="s-item">ALERTS: <span class="v warn" id="hdr-alerts">—</span></div>
+      <div class="s-item">DATA DATE: <span class="v" id="hdr-date">—</span></div>
+      <div class="s-item">PAGE LOADED: <span class="v" id="hdr-loaded">—</span></div>
+      <div class="s-item">STATUS: <span class="v" id="hdr-status">LOADING...</span><span class="cursor"></span></div>
     </div>
   </div>
 
-  <!-- ARTEMIS BANNER -->
   <div class="artemis-banner">
     <span class="label">⚡ LAUNCH DAY — 2026-04-01 &nbsp;|&nbsp; ARTEMIS II</span>
-    This program ran for the first time on the same day four humans left Earth's orbit for the Moon — the first time since Apollo 17 in 1972. The SLS rocket lifted off from Kennedy Space Center at 6:35 p.m. EDT. SIERRA-FLOW terminated normally at roughly the same hour.
-    <div class="crew">CREW: Reid Wiseman &nbsp;·&nbsp; Victor Glover &nbsp;·&nbsp; Christina Koch &nbsp;·&nbsp; Jeremy Hansen (CSA) &nbsp;·&nbsp; ETA: ~10 days</div>
+    This program first ran on the same day four humans left Earth's orbit for the Moon — the first crewed lunar mission since Apollo 17 in 1972. SLS lifted off from Launch Complex 39B at 6:35 p.m. EDT. SIERRA-FLOW terminated normally at roughly the same hour.
+    <div class="crew">CREW: Reid Wiseman &nbsp;·&nbsp; Victor Glover &nbsp;·&nbsp; Christina Koch &nbsp;·&nbsp; Jeremy Hansen (CSA)</div>
   </div>
 
-  <!-- STATS -->
   <div class="section">
     <div class="section-label">Run Statistics</div>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-num">8</span>
-        <div class="stat-label">Stations Processed</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">96</span>
-        <div class="stat-label">Records Read</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">0</span>
-        <div class="stat-label">Records Skipped</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num warn">24</span>
-        <div class="stat-label">Threshold Alerts</div>
-      </div>
-    </div>
+    <div class="stats-grid" id="stats-grid"><div class="loading"><span class="spinner"></span> Fetching USGS data...</div></div>
   </div>
 
-  <!-- STATION TABLE -->
   <div class="section">
-    <div class="section-label">Section I — Station Statistics</div>
-    <div class="panel">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>SITE ID</th>
-            <th>STATION NAME</th>
-            <th>REC</th>
-            <th>MEAN CFS</th>
-            <th>MIN CFS</th>
-            <th>MAX CFS</th>
-            <th>ALERTS</th>
-            <th>STATUS</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>11427000</td><td>American River at Fair Oaks</td><td>12</td><td>2,714.88</td><td>1,185.00</td><td>6,100.00</td><td>2</td><td><span class="badge badge-ok">NORMAL</span></td></tr>
-          <tr><td>11185500</td><td>Merced River at Pohono Bridge</td><td>12</td><td>1,292.67</td><td>298.75</td><td>3,100.50</td><td>0</td><td><span class="badge badge-ok">NORMAL</span></td></tr>
-          <tr><td>11432500</td><td>North Fork Feather River</td><td>12</td><td>3,643.00</td><td>798.25</td><td>8,500.50</td><td>4</td><td><span class="badge badge-ok">NORMAL</span></td></tr>
-          <tr><td>11230500</td><td>San Joaquin River at Friant</td><td>12</td><td>137.17</td><td>35.25</td><td>310.50</td><td>3</td><td><span class="badge badge-warn">⚠ LOW READINGS</span></td></tr>
-          <tr><td>11303000</td><td>Kings River below Pine Flat Dam</td><td>12</td><td>1,146.75</td><td>498.25</td><td>2,100.50</td><td>0</td><td><span class="badge badge-ok">NORMAL</span></td></tr>
-          <tr><td>11381500</td><td>Stony Creek near Fruto</td><td>12</td><td>299.71</td><td>21.75</td><td>720.50</td><td>3</td><td><span class="badge badge-warn">⚠ LOW READINGS</span></td></tr>
-          <tr><td>11349000</td><td>McCloud River above Shasta Lake</td><td>12</td><td>1,320.50</td><td>648.25</td><td>2,480.50</td><td>0</td><td><span class="badge badge-ok">NORMAL</span></td></tr>
-          <tr><td>11390000</td><td>Sacramento River at Butte City</td><td>12</td><td>17,183.58</td><td>10,600.25</td><td>28,000.50</td><td>12</td><td><span class="badge badge-high">🔴 HIGH FLOW</span></td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="section-label">30-Day Flow — All Stations</div>
+    <div class="panel" id="sparklines-panel"><div class="loading"><span class="spinner"></span> Loading...</div></div>
   </div>
 
-  <!-- RAW REPORT -->
   <div class="section">
-    <div class="section-label">Raw Report Output — streamflow-report.txt</div>
-    <div class="report-block"><span class="hl">================================================================</span>
-
-<span class="hl">         SIERRA NEVADA WATERSHED ANALYSIS SYSTEM</span>
-<span class="hl">          USGS STREAMFLOW DATA PROCESSING REPORT</span>
-<span class="dm">               PROCESSING DATE: 2026-04-01</span>
-
-<span class="hl">================================================================</span>
-
-SECTION I: STATION STATISTICS SUMMARY
-
-  SITE ID    STATION NAME                    RECORDS  MEAN(CFS)    MIN       MAX    ALERTS
-  <span class="dm">──────────────────────────────────────────────────────────────────────────────────</span>
-  11427000   American River at Fair Oaks         12    2714.88   1185.00  6100.00    2
-  11185500   Merced River at Pohono Bridge        12    1292.67    298.75  3100.50    0
-  11432500   North Fork Feather River             12    3643.00    798.25  8500.50    4
-  11230500   San Joaquin River at Friant          12     137.17     35.25   310.50    3
-  11303000   Kings River below Pine Flat Dam      12    1146.75    498.25  2100.50    0
-  11381500   Stony Creek near Fruto               12     299.71     21.75   720.50    3
-  11349000   McCloud River above Shasta Lake      12    1320.50    648.25  2480.50    0
-  11390000   Sacramento River at Butte City       12   17183.58  10600.25 28000.50   12
-
-SECTION II: THRESHOLD ALERT ANALYSIS
-
-  ALERT CONDITIONS: <span class="dm">LOW &lt; 50 CFS  |  HIGH &gt; 5000 CFS</span>
-
-  11390000   Sacramento River at Butte City    17183.58 CFS    <span class="al">*** HIGH FLOW ***</span>
-
-SECTION III: RUN SUMMARY
-
-  STATIONS PROCESSED ..........  8
-  TOTAL RECORDS READ .......... 96
-  RECORDS SKIPPED (INVALID) ...  0
-  TOTAL THRESHOLD ALERTS ...... <span class="al">24</span>
-
-<span class="hl">================================================================</span>
-  END OF REPORT - SIERRA NEVADA WATERSHED ANALYSIS
-<span class="hl">================================================================</span></div>
+    <div class="section-label">Section I — Station Statistics (sorted by mean CFS)</div>
+    <div class="panel" style="overflow-x:auto"><div id="station-table"><div class="loading"><span class="spinner"></span> Loading...</div></div></div>
   </div>
 
-  <!-- BUILD & RUN -->
+  <div class="section">
+    <div class="section-label">Section II — Alert &amp; Percent-of-Normal Analysis</div>
+    <div class="panel" style="overflow-x:auto"><div id="alert-table"><div class="loading"><span class="spinner"></span> Loading...</div></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Section III — Watershed Basin Roll-Up</div>
+    <div class="basin-grid" id="basin-grid"><div class="loading"><span class="spinner"></span> Loading...</div></div>
+  </div>
+
   <div class="section">
     <div class="section-label">Build &amp; Run</div>
     <div class="panel">
-      <div class="code-block"><span class="c"># Install GnuCOBOL</span>
+      <div class="code-block">
+<span class="c"># Install GnuCOBOL</span>
 <span class="p">$</span> <span class="cmd">sudo apt install gnucobol</span>            <span class="c"># Ubuntu / WSL</span>
 <span class="p">$</span> <span class="cmd">brew install gnucobol</span>               <span class="c"># macOS</span>
-<span class="c"># Windows: arnoldtrembley.com/GnuCOBOL.htm</span>
 
-<span class="c"># Clone and compile</span>
-<span class="p">$</span> <span class="cmd">git clone https://github.com/bdgroves/sierra-flow-cobol</span>
-<span class="p">$</span> <span class="cmd">cd sierra-flow-cobol</span>
+<span class="c"># Fetch live data + compile + run</span>
+<span class="p">$</span> <span class="cmd">python3 fetch_usgs.py</span>               <span class="c"># pulls 30 days from USGS API</span>
 <span class="p">$</span> <span class="cmd">cobc -x -o sierra-flow SIERRA-FLOW.cob</span>
-<span class="p">$</span> <span class="cmd">./sierra-flow</span>
-<span class="p">$</span> <span class="cmd">cat streamflow-report.txt</span>
+<span class="p">$</span> <span class="cmd">./sierra-flow && cat streamflow-report.txt</span>
 
-<span class="c"># GitHub Actions compiles + runs on every push automatically</span></div>
+<span class="c"># GitHub Actions runs this automatically every morning at 7AM Pacific</span></div>
     </div>
   </div>
 
-  <!-- ABOUT -->
   <div class="section">
     <div class="section-label">About</div>
     <div class="panel">
       <div class="desc">
-        <p>
-          <strong>What if the Western Regional Technical Service Center ran their streamflow analysis in 1987 — and the code was still running today?</strong>
-        </p>
-        <p>
-          SIERRA-FLOW is a COBOL program that reads USGS discharge data, computes per-station statistics,
-          flags threshold alerts, and prints a formatted 132-column report. No frameworks. No dependencies.
-          Character-by-character CSV parsing. <strong>COBOL doesn't apologize.</strong>
-        </p>
-        <p>
-          COBOL processes an estimated <strong>$3 trillion in daily financial transactions</strong>.
-          The IRS runs COBOL. Social Security runs COBOL. Your bank almost certainly runs COBOL.
-          It outlives every prediction of its death because it is extremely good at reading records,
-          doing math, and printing reports. That's also what a watershed data center does.
-        </p>
+        <p><strong>What if the Western Regional Technical Service Center ran their streamflow analysis in 1987 — and the code was still running today?</strong></p>
+        <p>SIERRA-FLOW is a COBOL program that reads live USGS discharge data, computes per-station statistics, flags threshold alerts, calculates percent-of-normal vs historical medians, determines 30-day flow trends, groups stations into watershed basins, and produces a formatted 132-column report. This page reads <code>streamflow.csv</code> — the same file COBOL processed — and renders everything live. Data updates every morning at 7AM Pacific via GitHub Actions. <strong>COBOL doesn't apologize.</strong></p>
       </div>
     </div>
   </div>
 
-  <!-- RELATED -->
   <div class="section">
     <div class="section-label">Related Projects</div>
     <div class="panel">
       <div class="desc">
-        <p><strong><a href="https://bdgroves.github.io/sierra-streamflow">Sierra Streamflow Monitor</a></strong> — Live dashboard, 8 USGS Sierra Nevada gages, Leaflet map, spaghetti charts.</p>
-        <p><strong><a href="https://bdgroves.github.io/EDGAR">EDGAR</a></strong> — Mariners/Rainiers baseball analytics dashboard. Nightly GitHub Actions updates.</p>
-        <p><strong><a href="https://bdgroves.github.io/ridgeline">RIDGELINE</a></strong> — Phoenix WUI search &amp; rescue call volume. 86,168 incidents, 2019–2025.</p>
+        <p><strong><a href="https://bdgroves.github.io/sierra-streamflow">Sierra Streamflow Monitor</a></strong> — Live dashboard, 8 USGS Sierra Nevada gages, Leaflet map, 20-year spaghetti charts.</p>
+        <p><strong><a href="https://bdgroves.github.io/EDGAR">EDGAR</a></strong> — Mariners/Rainiers baseball analytics. Nightly GitHub Actions updates.</p>
+        <p><strong><a href="https://bdgroves.github.io/ridgeline">RIDGELINE</a></strong> — Phoenix WUI search &amp; rescue. 86,168 incidents, 2019–2025.</p>
         <p><strong><a href="https://brooksgroves.com">brooksgroves.com</a></strong> — Project hub.</p>
       </div>
     </div>
   </div>
 
   <hr class="div">
-
   <div class="footer">
     <div><a href="https://github.com/bdgroves/sierra-flow-cobol">github.com/bdgroves/sierra-flow-cobol</a> &nbsp;·&nbsp; <a href="https://brooksgroves.com">brooksgroves.com</a></div>
-    <div style="margin-top:0.4rem; color:#004400;">
-      COMPILED ON ARTEMIS II LAUNCH DAY &nbsp;·&nbsp; 2026-04-01 &nbsp;·&nbsp; NORMAL TERMINATION &nbsp;·&nbsp; RETURN CODE: 0 &nbsp;·&nbsp; *** END OF JOB ***
-    </div>
+    <div style="margin-top:.4rem;color:#004400;">COMPILED ON ARTEMIS II LAUNCH DAY &nbsp;·&nbsp; 2026-04-01 &nbsp;·&nbsp; NORMAL TERMINATION &nbsp;·&nbsp; RETURN CODE: 0</div>
   </div>
 
 </div>
-
 <script>
-  // Stamp today's date as "last run"
-  const d = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const ds = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  document.getElementById('last-run').textContent = ds;
-</script>
+const BASELINES = {
+  '11276500': { median:350,  low:50,   high:5000,  basin:'TUOLUMNE' },
+  '11274790': { median:900,  low:100,  high:8000,  basin:'TUOLUMNE' },
+  '11289650': { median:1200, low:100,  high:8000,  basin:'TUOLUMNE' },
+  '11290000': { median:1400, low:200,  high:10000, basin:'TUOLUMNE' },
+  '11266500': { median:800,  low:100,  high:6000,  basin:'MERCED'   },
+  '11264500': { median:450,  low:50,   high:4000,  basin:'MERCED'   },
+  '11303000': { median:600,  low:100,  high:6000,  basin:'STANISLAUS'},
+  '11284400': { median:8,    low:1,    high:100,   basin:'TUOLUMNE' },
+};
 
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v => v.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
+    return obj;
+  });
+}
+
+function computeStats(rows) {
+  const stations = {};
+  for (const row of rows) {
+    const id = row.site_id, name = row.site_name;
+    const cfs = parseFloat(row.discharge_cfs), date = row.measurement_date;
+    if (!id || isNaN(cfs)) continue;
+    if (!stations[id]) {
+      stations[id] = { id, name, sum:0, count:0, min:Infinity, max:-Infinity,
+        lastDate:'', lastVal:0, prevVal:null, trendSum:0, trendCount:0,
+        alerts:0, history:[], baseline: BASELINES[id] || {median:1,low:50,high:5000,basin:'OTHER'} };
+    }
+    const s = stations[id];
+    s.sum += cfs; s.count++;
+    if (cfs < s.min) s.min = cfs;
+    if (cfs > s.max) s.max = cfs;
+    if (date >= s.lastDate) { s.lastDate = date; s.lastVal = cfs; }
+    if (s.prevVal !== null) { s.trendSum += cfs - s.prevVal; s.trendCount++; }
+    s.prevVal = cfs;
+    if (cfs < s.baseline.low || cfs > s.baseline.high) s.alerts++;
+    s.history.push({date, cfs});
+  }
+  for (const s of Object.values(stations)) {
+    s.mean = s.sum / s.count;
+    s.pctNormal = s.baseline.median > 0 ? (s.mean / s.baseline.median) * 100 : 0;
+    const avg = s.trendCount > 0 ? s.trendSum / s.trendCount : 0;
+    s.trend = avg > 50 ? 'RISING' : avg < -50 ? 'FALLING' : 'STABLE';
+    s.history.sort((a,b) => a.date.localeCompare(b.date));
+  }
+  return Object.values(stations).sort((a,b) => b.mean - a.mean);
+}
+
+function computeBasins(stations) {
+  const basins = {};
+  for (const s of stations) {
+    const b = s.baseline.basin;
+    if (!basins[b]) basins[b] = {name:b, total:0, count:0};
+    basins[b].total += s.mean; basins[b].count++;
+  }
+  return Object.values(basins).sort((a,b) => b.total - a.total);
+}
+
+function badge(s) {
+  const p = s.pctNormal;
+  if (s.mean > s.baseline.high) return '<span class="badge badge-high">★ HIGH FLOW</span>';
+  if (s.mean < s.baseline.low)  return '<span class="badge badge-low">▼ LOW FLOW</span>';
+  if (p > 200) return '<span class="badge badge-above">▲ ABOVE NORMAL</span>';
+  if (p <  50) return '<span class="badge badge-below">▼ BELOW NORMAL</span>';
+  return '<span class="badge badge-ok">NORMAL</span>';
+}
+
+function trend(t) {
+  if (t==='RISING')  return '<span class="trend-rising">▲ RISING</span>';
+  if (t==='FALLING') return '<span class="trend-falling">▼ FALLING</span>';
+  return '<span class="trend-stable">─ STABLE</span>';
+}
+
+function fmt(n, d=2) { return n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+function drawSpark(canvas, history, color) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 200, H = canvas.height;
+  canvas.width = W;
+  const vals = history.map(h => h.cfs);
+  const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
+  const pts = vals.map((v,i) => ({
+    x: (i/(vals.length-1))*W,
+    y: H - ((v-mn)/rng)*(H-4) - 2
+  }));
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+  const last = pts[pts.length-1];
+  ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+}
+
+function render(stations) {
+  const totalRecords = stations.reduce((a,s) => a+s.count, 0);
+  const totalAlerts  = stations.reduce((a,s) => a+s.alerts, 0);
+  const latestDate   = stations.reduce((a,s) => s.lastDate>a?s.lastDate:a, '');
+  const basins = computeBasins(stations);
+  const now = new Date(), pad = n => String(n).padStart(2,'0');
+
+  document.getElementById('hdr-stations').textContent = stations.length;
+  document.getElementById('hdr-records').textContent  = totalRecords;
+  document.getElementById('hdr-alerts').textContent   = totalAlerts;
+  document.getElementById('hdr-date').textContent     = latestDate;
+  document.getElementById('hdr-status').textContent   = 'NORMAL TERMINATION';
+  document.getElementById('hdr-loaded').textContent   =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><span class="stat-num">${stations.length}</span><div class="stat-label">Stations</div></div>
+    <div class="stat-card"><span class="stat-num">${totalRecords}</span><div class="stat-label">Records Read</div></div>
+    <div class="stat-card"><span class="stat-num">0</span><div class="stat-label">Records Skipped</div></div>
+    <div class="stat-card"><span class="stat-num ${totalAlerts>0?'warn':''}">${totalAlerts}</span><div class="stat-label">Threshold Alerts</div></div>`;
+
+  document.getElementById('sparklines-panel').innerHTML = stations.map(s =>
+    `<div class="sparkline-row">
+       <div class="spark-name">${s.name}</div>
+       <canvas class="spark-canvas" data-id="${s.id}" height="32"></canvas>
+       <div class="spark-val">${fmt(s.lastVal,0)} cfs</div>
+     </div>`).join('');
+
+  requestAnimationFrame(() => {
+    stations.forEach(s => {
+      const c = document.querySelector(`canvas[data-id="${s.id}"]`);
+      if (c && s.history.length > 1) {
+        const col = s.trend==='RISING'?'#00ff41':s.trend==='FALLING'?'#ffb300':'#00a827';
+        drawSpark(c, s.history, col);
+      }
+    });
+  });
+
+  document.getElementById('station-table').innerHTML = `
+    <table class="tbl"><thead><tr>
+      <th>SITE ID</th><th>STATION NAME</th><th>REC</th><th>MEAN CFS</th>
+      <th>MIN CFS</th><th>MAX CFS</th><th>% NORMAL</th><th>TREND</th>
+      <th>ALERTS</th><th>LAST DATE</th><th>LAST CFS</th>
+    </tr></thead><tbody>
+    ${stations.map(s => `<tr>
+      <td>${s.id}</td><td>${s.name}</td><td>${s.count}</td>
+      <td>${fmt(s.mean)}</td><td>${fmt(s.min)}</td><td>${fmt(s.max)}</td>
+      <td>${fmt(s.pctNormal,1)}%</td><td>${trend(s.trend)}</td>
+      <td>${s.alerts}</td><td>${s.lastDate}</td><td>${fmt(s.lastVal)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+
+  document.getElementById('alert-table').innerHTML = `
+    <table class="tbl"><thead><tr>
+      <th>SITE ID</th><th>STATION NAME</th><th>MEAN CFS</th>
+      <th>MEDIAN CFS</th><th>% NORMAL</th><th>ALERT STATUS</th>
+    </tr></thead><tbody>
+    ${stations.map(s => `<tr>
+      <td>${s.id}</td><td>${s.name}</td><td>${fmt(s.mean)}</td>
+      <td>${fmt(s.baseline.median)}</td><td>${fmt(s.pctNormal,1)}%</td>
+      <td>${badge(s)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+
+  document.getElementById('basin-grid').innerHTML = basins.map(b => `
+    <div class="basin-card">
+      <div class="basin-name">${b.name}</div>
+      <div class="basin-total">
+        <span>${b.count}</span> station${b.count!==1?'s':''} &nbsp;·&nbsp;
+        <span>${fmt(b.total,0)}</span> CFS total mean
+      </div>
+    </div>`).join('');
+}
+
+async function init() {
+  try {
+    const resp = await fetch('streamflow.csv?_='+Date.now());
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if (!rows.length) throw new Error('No data rows');
+    render(computeStats(rows));
+  } catch(err) {
+    document.getElementById('hdr-status').textContent = 'FETCH ERROR';
+    const msg = `<div class="error-msg">ERROR: Could not load streamflow.csv — ${err.message}<br>
+      Requires a web server. Run: <code>python -m http.server 8000</code></div>`;
+    ['stats-grid','sparklines-panel','station-table','alert-table','basin-grid']
+      .forEach(id => { document.getElementById(id).innerHTML = msg; });
+  }
+}
+init();
+</script>
 </body>
 </html>
