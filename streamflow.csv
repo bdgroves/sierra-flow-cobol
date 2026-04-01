@@ -1,0 +1,97 @@
+site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
+11427000,American River at Fair Oaks,2024-01-01,1240.50,8.21
+11427000,American River at Fair Oaks,2024-01-02,1185.00,8.10
+11427000,American River at Fair Oaks,2024-01-03,1320.75,8.44
+11427000,American River at Fair Oaks,2024-01-04,6100.00,14.20
+11427000,American River at Fair Oaks,2024-01-05,5820.50,13.85
+11427000,American River at Fair Oaks,2024-01-06,4210.00,12.10
+11427000,American River at Fair Oaks,2024-01-07,3100.25,11.02
+11427000,American River at Fair Oaks,2024-01-08,2540.00,10.21
+11427000,American River at Fair Oaks,2024-01-09,2100.50,9.72
+11427000,American River at Fair Oaks,2024-01-10,1890.25,9.40
+11427000,American River at Fair Oaks,2024-01-11,1650.00,9.05
+11427000,American River at Fair Oaks,2024-01-12,1420.75,8.62
+11185500,Merced River at Pohono Bridge,2024-01-01,320.00,4.82
+11185500,Merced River at Pohono Bridge,2024-01-02,310.50,4.76
+11185500,Merced River at Pohono Bridge,2024-01-03,298.75,4.66
+11185500,Merced River at Pohono Bridge,2024-01-04,2850.00,11.40
+11185500,Merced River at Pohono Bridge,2024-01-05,3100.50,12.10
+11185500,Merced River at Pohono Bridge,2024-01-06,2640.25,11.05
+11185500,Merced River at Pohono Bridge,2024-01-07,1920.00,9.60
+11185500,Merced River at Pohono Bridge,2024-01-08,1420.50,8.62
+11185500,Merced River at Pohono Bridge,2024-01-09,980.25,7.40
+11185500,Merced River at Pohono Bridge,2024-01-10,720.00,6.80
+11185500,Merced River at Pohono Bridge,2024-01-11,540.50,6.10
+11185500,Merced River at Pohono Bridge,2024-01-12,410.75,5.42
+11432500,North Fork Feather River,2024-01-01,845.00,6.20
+11432500,North Fork Feather River,2024-01-02,820.50,6.12
+11432500,North Fork Feather River,2024-01-03,798.25,6.02
+11432500,North Fork Feather River,2024-01-04,7200.00,16.80
+11432500,North Fork Feather River,2024-01-05,8500.50,18.20
+11432500,North Fork Feather River,2024-01-06,7100.25,16.60
+11432500,North Fork Feather River,2024-01-07,5600.00,14.40
+11432500,North Fork Feather River,2024-01-08,4100.50,12.50
+11432500,North Fork Feather River,2024-01-09,3200.25,11.20
+11432500,North Fork Feather River,2024-01-10,2400.00,10.10
+11432500,North Fork Feather River,2024-01-11,1800.50,9.20
+11432500,North Fork Feather River,2024-01-12,1350.25,8.50
+11230500,San Joaquin River at Friant,2024-01-01,42.00,2.10
+11230500,San Joaquin River at Friant,2024-01-02,38.50,2.02
+11230500,San Joaquin River at Friant,2024-01-03,35.25,1.95
+11230500,San Joaquin River at Friant,2024-01-04,125.00,3.40
+11230500,San Joaquin River at Friant,2024-01-05,310.50,5.10
+11230500,San Joaquin River at Friant,2024-01-06,285.25,4.90
+11230500,San Joaquin River at Friant,2024-01-07,210.00,4.30
+11230500,San Joaquin River at Friant,2024-01-08,165.50,3.90
+11230500,San Joaquin River at Friant,2024-01-09,140.25,3.65
+11230500,San Joaquin River at Friant,2024-01-10,120.00,3.40
+11230500,San Joaquin River at Friant,2024-01-11,95.50,3.10
+11230500,San Joaquin River at Friant,2024-01-12,78.25,2.82
+11303000,Kings River below Pine Flat Dam,2024-01-01,520.00,5.60
+11303000,Kings River below Pine Flat Dam,2024-01-02,510.50,5.55
+11303000,Kings River below Pine Flat Dam,2024-01-03,498.25,5.48
+11303000,Kings River below Pine Flat Dam,2024-01-04,1850.00,9.50
+11303000,Kings River below Pine Flat Dam,2024-01-05,2100.50,10.20
+11303000,Kings River below Pine Flat Dam,2024-01-06,1920.25,9.65
+11303000,Kings River below Pine Flat Dam,2024-01-07,1640.00,8.90
+11303000,Kings River below Pine Flat Dam,2024-01-08,1380.50,8.30
+11303000,Kings River below Pine Flat Dam,2024-01-09,1120.25,7.82
+11303000,Kings River below Pine Flat Dam,2024-01-10,890.00,7.10
+11303000,Kings River below Pine Flat Dam,2024-01-11,720.50,6.72
+11303000,Kings River below Pine Flat Dam,2024-01-12,610.25,6.20
+11381500,Stony Creek near Fruto,2024-01-01,28.50,1.80
+11381500,Stony Creek near Fruto,2024-01-02,24.00,1.70
+11381500,Stony Creek near Fruto,2024-01-03,21.75,1.64
+11381500,Stony Creek near Fruto,2024-01-04,580.00,7.20
+11381500,Stony Creek near Fruto,2024-01-05,720.50,8.10
+11381500,Stony Creek near Fruto,2024-01-06,640.25,7.60
+11381500,Stony Creek near Fruto,2024-01-07,480.00,6.80
+11381500,Stony Creek near Fruto,2024-01-08,380.50,6.20
+11381500,Stony Creek near Fruto,2024-01-09,280.25,5.60
+11381500,Stony Creek near Fruto,2024-01-10,200.00,4.90
+11381500,Stony Creek near Fruto,2024-01-11,145.50,4.30
+11381500,Stony Creek near Fruto,2024-01-12,95.25,3.70
+11349000,McCloud River above Shasta Lake,2024-01-01,680.00,6.10
+11349000,McCloud River above Shasta Lake,2024-01-02,665.50,6.04
+11349000,McCloud River above Shasta Lake,2024-01-03,648.25,5.96
+11349000,McCloud River above Shasta Lake,2024-01-04,2100.00,10.40
+11349000,McCloud River above Shasta Lake,2024-01-05,2480.50,11.20
+11349000,McCloud River above Shasta Lake,2024-01-06,2240.25,10.75
+11349000,McCloud River above Shasta Lake,2024-01-07,1860.00,9.65
+11349000,McCloud River above Shasta Lake,2024-01-08,1520.50,8.90
+11349000,McCloud River above Shasta Lake,2024-01-09,1240.25,8.20
+11349000,McCloud River above Shasta Lake,2024-01-10,980.00,7.40
+11349000,McCloud River above Shasta Lake,2024-01-11,780.50,6.80
+11349000,McCloud River above Shasta Lake,2024-01-12,650.25,6.08
+11390000,Sacramento River at Butte City,2024-01-01,12500.00,22.40
+11390000,Sacramento River at Butte City,2024-01-02,11800.50,21.90
+11390000,Sacramento River at Butte City,2024-01-03,11200.25,21.40
+11390000,Sacramento River at Butte City,2024-01-04,24500.00,31.20
+11390000,Sacramento River at Butte City,2024-01-05,28000.50,33.80
+11390000,Sacramento River at Butte City,2024-01-06,26200.25,32.60
+11390000,Sacramento River at Butte City,2024-01-07,22400.00,30.10
+11390000,Sacramento River at Butte City,2024-01-08,18600.50,27.40
+11390000,Sacramento River at Butte City,2024-01-09,15400.25,25.10
+11390000,Sacramento River at Butte City,2024-01-10,13200.00,23.50
+11390000,Sacramento River at Butte City,2024-01-11,11800.50,22.10
+11390000,Sacramento River at Butte City,2024-01-12,10600.25,21.00

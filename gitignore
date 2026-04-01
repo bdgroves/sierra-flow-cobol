@@ -1,0 +1,18 @@
+# Compiled binary
+sierra-flow
+sierra-flow.exe
+
+# Generated report
+streamflow-report.txt
+
+# GnuCOBOL intermediates
+*.c
+*.o
+*.so
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
