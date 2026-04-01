@@ -13,7 +13,7 @@ SECTION I: STATION STATISTICS  (SORTED BY MEAN CFS)
 
   SITE ID          STATION NAME                    RECORDS  MEAN (CFS)   MIN (CFS)   MAX (CFS)  % NORMAL  TREND       ALERTS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11290000         Tuolumne River at Modesto          31      2059.97      318.00     3110.00   147.14   ▲ RISING      0
+  11290000         Tuolumne River at Modesto          31      2059.87      318.00     3110.00   147.13   ▲ RISING      0
   11289650         Tuolumne River at LaGrange Dam     31      1872.90      226.00     3070.00   156.08   ▲ RISING      0
   11266500         Merced River at Pohono Bridge      31      1647.32      729.00     2780.00   205.92   ─ STABLE      0
   11274790         Tuolumne River Grand Canyon        31      1362.65      465.00     2350.00   151.41   ─ STABLE      0
@@ -26,7 +26,7 @@ SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS
 
   SITE ID          STATION NAME                    MEAN (CFS)  MEDIAN CFS  % NORMAL  ALERT STATUS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11290000         Tuolumne River at Modesto         2059.97      350.00   147.14    NORMAL
+  11290000         Tuolumne River at Modesto         2059.87      350.00   147.13    NORMAL
   11289650         Tuolumne River at LaGrange Dam    1872.90      900.00   156.08    NORMAL
   11266500         Merced River at Pohono Bridge     1647.32     1200.00   205.92    ABOVE NORMAL
   11274790         Tuolumne River Grand Canyon       1362.65     1400.00   151.41    NORMAL
@@ -39,7 +39,7 @@ SECTION III: WATERSHED BASIN ROLL-UP
 
   WATERSHED BASIN       STATIONS  TOTAL MEAN CFS
 ------------------------------------------------------------------------------------------------------------------------------------
-  TUOLUMNE                 5            5742.21
+  TUOLUMNE                 5            5742.11
   MERCED                   2            2580.00
   STANISLAUS               1             243.55
 
