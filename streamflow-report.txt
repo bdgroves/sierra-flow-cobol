@@ -13,14 +13,14 @@ SECTION I: STATION STATISTICS SUMMARY
 
   SITE ID          STATION NAME                         RECORDS  MEAN (CFS)   MIN (CFS)   MAX (CFS)  ALERTS   LAST DATE   LAST (CFS)
 ------------------------------------------------------------------------------------------------------------------------------------
-  11427000         American River at Fair Oaks              12     2714.88     1185.00     6100.00      2     2024-01-12     1420.75
-  11185500         Merced River at Pohono Bridge            12     1292.67      298.75     3100.50      0     2024-01-12      410.75
-  11432500         North Fork Feather River                 12     3643.00      798.25     8500.50      4     2024-01-12     1350.25
-  11230500         San Joaquin River at Friant              12      137.17       35.25      310.50      3     2024-01-12       78.25
-  11303000         Kings River below Pine Flat Da           12     1146.75      498.25     2100.50      0     2024-01-12      610.25
-  11381500         Stony Creek near Fruto                   12      299.71       21.75      720.50      3     2024-01-12       95.25
-  11349000         McCloud River above Shasta Lak           12     1320.50      648.25     2480.50      0     2024-01-12      650.25
-  11390000         Sacramento River at Butte City           12    17183.58    10600.25    28000.50     12     2024-01-12    10600.25
+  11276500         Tuolumne River at Hetch Hetchy           31      443.55      127.00     3400.00      0     2026-04-01      312.00
+  11274790         Tuolumne River Grand Canyon              31     1361.68      465.00     2350.00      0     2026-04-01     1240.00
+  11289650         Tuolumne River at LaGrange Dam           31     1872.84      226.00     3070.00      0     2026-04-01      229.00
+  11290000         Tuolumne River at Modesto                31     2059.97      318.00     3110.00      0     2026-04-01      334.00
+  11266500         Merced River at Pohono Bridge            31     1647.32      729.00     2780.00      0     2026-04-01     1460.00
+  11264500         Merced River at Happy Isles              31      932.68      343.00     1650.00      0     2026-04-01      775.00
+  11303000         Stanislaus River at Ripon                31      243.55      177.00      746.00      0     2026-04-01      746.00
+  11284400         Big Creek near Hetch Hetchy              31        3.09        1.36        9.53     31     2026-04-01        2.31
 
 SECTION II: THRESHOLD ALERT ANALYSIS
 
@@ -28,21 +28,21 @@ SECTION II: THRESHOLD ALERT ANALYSIS
 
   SITE ID          STATION NAME                         MEAN (CFS)  LOW THRESH  HIGH THRESH  ALERT STATUS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11427000         American River at Fair Oaks            2714.88       50.00     5000.00   NORMAL
-  11185500         Merced River at Pohono Bridge          1292.67       50.00     5000.00   NORMAL
-  11432500         North Fork Feather River               3643.00       50.00     5000.00   NORMAL
-  11230500         San Joaquin River at Friant             137.17       50.00     5000.00   NORMAL
-  11303000         Kings River below Pine Flat Da         1146.75       50.00     5000.00   NORMAL
-  11381500         Stony Creek near Fruto                  299.71       50.00     5000.00   NORMAL
-  11349000         McCloud River above Shasta Lak         1320.50       50.00     5000.00   NORMAL
-  11390000         Sacramento River at Butte City        17183.58       50.00     5000.00   *** HIGH FLOW *
+  11276500         Tuolumne River at Hetch Hetchy          443.55       50.00     5000.00   NORMAL
+  11274790         Tuolumne River Grand Canyon            1361.68       50.00     5000.00   NORMAL
+  11289650         Tuolumne River at LaGrange Dam         1872.84       50.00     5000.00   NORMAL
+  11290000         Tuolumne River at Modesto              2059.97       50.00     5000.00   NORMAL
+  11266500         Merced River at Pohono Bridge          1647.32       50.00     5000.00   NORMAL
+  11264500         Merced River at Happy Isles             932.68       50.00     5000.00   NORMAL
+  11303000         Stanislaus River at Ripon               243.55       50.00     5000.00   NORMAL
+  11284400         Big Creek near Hetch Hetchy               3.09       50.00     5000.00   *** LOW FLOW **
 
 SECTION III: RUN SUMMARY
 
     STATIONS PROCESSED:              8
-    TOTAL DATA RECORDS READ:        96
+    TOTAL DATA RECORDS READ:       248
     RECORDS SKIPPED (INVALID):       0
-    TOTAL THRESHOLD ALERTS:         24
+    TOTAL THRESHOLD ALERTS:         31
 
 =================================================================================================
   END OF REPORT - SIERRA NEVADA WATERSHED ANALYSIS

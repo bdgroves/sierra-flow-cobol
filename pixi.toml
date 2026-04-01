@@ -1,0 +1,11 @@
+[workspace]
+authors = ["bdgroves <bdgroves1970@gmail.com>"]
+channels = ["conda-forge"]
+name = "sierra-flow-cobol"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.14.3,<3.15"
