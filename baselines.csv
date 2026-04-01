@@ -1,9 +1,9 @@
 site_id,site_name,median_cfs,low_threshold_cfs,high_threshold_cfs
-11427000,American River at Fair Oaks,2100.00,400.00,8000.00
-11185500,Merced River at Pohono Bridge,850.00,150.00,4000.00
-11432500,North Fork Feather River,2800.00,500.00,10000.00
-11230500,San Joaquin River at Friant,180.00,30.00,1500.00
-11303000,Kings River below Pine Flat Dam,900.00,200.00,5000.00
-11381500,Stony Creek near Fruto,220.00,20.00,2000.00
-11349000,McCloud River above Shasta Lake,950.00,300.00,4000.00
-11390000,Sacramento River at Butte City,14000.00,3000.00,35000.00
+11276500,Tuolumne River at Hetch Hetchy,350.00,50.00,5000.00
+11274790,Tuolumne River Grand Canyon,900.00,100.00,8000.00
+11289650,Tuolumne River at LaGrange Dam,1200.00,100.00,8000.00
+11290000,Tuolumne River at Modesto,1400.00,200.00,10000.00
+11266500,Merced River at Pohono Bridge,800.00,100.00,6000.00
+11264500,Merced River at Happy Isles,450.00,50.00,4000.00
+11303000,Stanislaus River at Ripon,600.00,100.00,6000.00
+11284400,Big Creek near Hetch Hetchy,8.00,1.00,100.00

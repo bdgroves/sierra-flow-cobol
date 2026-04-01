@@ -144,6 +144,16 @@
                10  ST-TREND-SUM         PIC S9(9)V99 VALUE 0.
                10  ST-TREND-COUNT       PIC 9(4)  VALUE 0.
 
+      *--- BASELINE CACHE (loaded before stations are known) ---
+       01  WS-BL-COUNT                  PIC 9 VALUE 0.
+       01  WS-BL-CACHE.
+           05  WS-BLC OCCURS 12 TIMES
+                         INDEXED BY BLC-IDX.
+               10  BLC-SITE-ID          PIC X(15).
+               10  BLC-MEDIAN           PIC 9(7)V99 VALUE 0.
+               10  BLC-LOW              PIC 9(7)V99 VALUE 50.
+               10  BLC-HIGH             PIC 9(7)V99 VALUE 5000.
+
       *--- BASIN ROLL-UP TABLE ---
        01  WS-BASIN-COUNT               PIC 9 VALUE 0.
        01  WS-BASIN-TABLE.
@@ -303,6 +313,7 @@
            PERFORM 1000-INITIALIZE
            PERFORM 2000-LOAD-BASELINES
            PERFORM 3000-PROCESS-STREAMFLOW
+           PERFORM 3500-APPLY-BASELINES
            PERFORM 4000-COMPUTE-STATS
            PERFORM 5000-SORT-STATIONS
            PERFORM 6000-WRITE-REPORT
@@ -351,6 +362,7 @@
       *================================================================*
        2100-PARSE-BASELINE.
       *================================================================*
+           MOVE BL-RECORD TO SF-RECORD
            PERFORM 8000-CLEAR-PARSE-AREA
            PERFORM 8100-PARSE-CSV-LINE
                WITH TEST BEFORE
@@ -382,14 +394,12 @@
                    TO WS-BL-HIGH
            END-IF
 
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-               IF ST-SITE-ID(STN-IDX) = WS-BL-SITE-ID
-                   MOVE WS-BL-MEDIAN TO ST-MEDIAN(STN-IDX)
-                   MOVE WS-BL-LOW    TO ST-LOW-THRESH(STN-IDX)
-                   MOVE WS-BL-HIGH   TO ST-HIGH-THRESH(STN-IDX)
-               END-IF
-           END-PERFORM.
+      *--- Store in baseline cache table for later application ---
+           ADD 1 TO WS-BL-COUNT
+           MOVE WS-BL-SITE-ID TO BLC-SITE-ID(WS-BL-COUNT)
+           MOVE WS-BL-MEDIAN  TO BLC-MEDIAN(WS-BL-COUNT)
+           MOVE WS-BL-LOW     TO BLC-LOW(WS-BL-COUNT)
+           MOVE WS-BL-HIGH    TO BLC-HIGH(WS-BL-COUNT).
 
       *================================================================*
        3000-PROCESS-STREAMFLOW.
@@ -500,25 +510,44 @@
        3210-ASSIGN-BASIN.
       *================================================================*
            EVALUATE WS-SITE-ID
-               WHEN '11427000'
-                   MOVE 'AMERICAN BASIN' TO ST-BASIN(STN-IDX)
-               WHEN '11432500'
-                   MOVE 'FEATHER BASIN'  TO ST-BASIN(STN-IDX)
-               WHEN '11185500'
-                   MOVE 'SAN JOAQUIN'    TO ST-BASIN(STN-IDX)
-               WHEN '11230500'
-                   MOVE 'SAN JOAQUIN'    TO ST-BASIN(STN-IDX)
+               WHEN '11276500'
+                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
+               WHEN '11274790'
+                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
+               WHEN '11289650'
+                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
+               WHEN '11290000'
+                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
+               WHEN '11266500'
+                   MOVE 'MERCED'         TO ST-BASIN(STN-IDX)
+               WHEN '11264500'
+                   MOVE 'MERCED'         TO ST-BASIN(STN-IDX)
                WHEN '11303000'
-                   MOVE 'SAN JOAQUIN'    TO ST-BASIN(STN-IDX)
-               WHEN '11381500'
-                   MOVE 'SACRAMENTO'     TO ST-BASIN(STN-IDX)
-               WHEN '11349000'
-                   MOVE 'SACRAMENTO'     TO ST-BASIN(STN-IDX)
-               WHEN '11390000'
-                   MOVE 'SACRAMENTO'     TO ST-BASIN(STN-IDX)
+                   MOVE 'STANISLAUS'     TO ST-BASIN(STN-IDX)
+               WHEN '11284400'
+                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
                WHEN OTHER
                    MOVE 'OTHER'          TO ST-BASIN(STN-IDX)
            END-EVALUATE.
+
+      *================================================================*
+       3500-APPLY-BASELINES.
+      *================================================================*
+           DISPLAY 'SIERRA-FLOW V2.0: APPLYING BASELINES...'
+           PERFORM VARYING STN-IDX FROM 1 BY 1
+               UNTIL STN-IDX > WS-STATION-COUNT
+               PERFORM VARYING BLC-IDX FROM 1 BY 1
+                   UNTIL BLC-IDX > WS-BL-COUNT
+                   IF BLC-SITE-ID(BLC-IDX) = ST-SITE-ID(STN-IDX)
+                       MOVE BLC-MEDIAN(BLC-IDX)
+                           TO ST-MEDIAN(STN-IDX)
+                       MOVE BLC-LOW(BLC-IDX)
+                           TO ST-LOW-THRESH(STN-IDX)
+                       MOVE BLC-HIGH(BLC-IDX)
+                           TO ST-HIGH-THRESH(STN-IDX)
+                   END-IF
+               END-PERFORM
+           END-PERFORM.
 
       *================================================================*
        4000-COMPUTE-STATS.
@@ -576,8 +605,14 @@
                    MOVE ST-BASIN(STN-IDX) TO BS-NAME(BSN-IDX)
                END-IF
 
-               ADD ST-MEAN(STN-IDX)   TO BS-TOTAL(BSN-IDX)
-               ADD 1                  TO BS-STATION-COUNT(BSN-IDX)
+      *--- BSN-IDX now points to correct basin either way ---
+               PERFORM VARYING BSN-IDX FROM 1 BY 1
+                   UNTIL BSN-IDX > WS-BASIN-COUNT
+                   IF BS-NAME(BSN-IDX) = ST-BASIN(STN-IDX)
+                       ADD ST-MEAN(STN-IDX) TO BS-TOTAL(BSN-IDX)
+                       ADD 1 TO BS-STATION-COUNT(BSN-IDX)
+                   END-IF
+               END-PERFORM
 
            END-PERFORM.
 
@@ -615,6 +650,7 @@
       *================================================================*
       *--- Write sorted records back into station table in order ---
            MOVE 0 TO WS-STATION-COUNT
+           MOVE 'N' TO WS-EOF-SF
            PERFORM UNTIL EOF-STREAMFLOW
                RETURN SORT-FILE INTO SORT-RECORD
                    AT END SET EOF-STREAMFLOW TO TRUE
@@ -692,7 +728,7 @@
       *================================================================*
        6300-WRITE-SECTION-II.
       *================================================================*
-           MOVE 'SECTION II: THRESHOLD ALERT & PERCENT-OF-NORMAL ANALYSIS'
+           MOVE 'SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS'
                TO WS-REPORT-LINE
            WRITE RPT-LINE FROM WS-REPORT-LINE
            WRITE RPT-LINE FROM WS-BLANK-LINE
@@ -821,4 +857,5 @@
            CLOSE REPORT-FILE
            DISPLAY 'SIERRA-FLOW V2.0: REPORT WRITTEN TO'
                ' streamflow-report.txt'
-           DISPLAY 'SIERRA-FLOW V2.0: JOB COMPLETE. NORMAL TERMINATION.'.
+           DISPLAY 'SIERRA-FLOW V2.0: JOB COMPLETE. NORMAL TERMINATION'
+           DISPLAY '.'.
