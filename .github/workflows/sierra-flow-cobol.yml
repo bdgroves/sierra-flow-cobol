@@ -1,0 +1,34 @@
+name: Sierra Flow - Compile and Run
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  compile-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GnuCOBOL
+        run: sudo apt-get install -y gnucobol
+
+      - name: Compile SIERRA-FLOW.cob
+        run: cobc -x -o sierra-flow SIERRA-FLOW.cob
+
+      - name: Run Sierra Flow processor
+        run: ./sierra-flow
+
+      - name: Show report
+        run: cat streamflow-report.txt
+
+      - name: Commit updated report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add streamflow-report.txt
+          git diff --staged --quiet || git commit -m "chore: update streamflow report [skip ci]"
+          git push
