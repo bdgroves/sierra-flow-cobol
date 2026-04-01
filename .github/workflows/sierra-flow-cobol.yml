@@ -1,15 +1,17 @@
-name: Sierra Flow - Compile and Run
+name: Sierra Flow - Daily Streamflow Processing
 
 on:
   push:
     branches: [ main ]
+  schedule:
+    - cron: '0 14 * * *'   # 14:00 UTC = 7:00 AM Pacific / 6:00 AM PDT
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  compile-and-run:
+  fetch-and-process:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,6 +20,19 @@ jobs:
 
       - name: Install GnuCOBOL
         run: sudo apt-get install -y gnucobol
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch live USGS streamflow data
+        run: |
+          echo "Fetching live data from USGS Water Services API..."
+          python3 fetch_usgs.py
+
+      - name: Show fetched data (first 10 rows)
+        run: head -11 streamflow.csv
 
       - name: Compile SIERRA-FLOW.cob
         run: cobc -x -o sierra-flow SIERRA-FLOW.cob
@@ -28,10 +43,11 @@ jobs:
       - name: Show report
         run: cat streamflow-report.txt
 
-      - name: Commit updated report
+      - name: Commit updated data and report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add streamflow-report.txt
-          git diff --staged --quiet || git commit -m "chore: update streamflow report [skip ci]"
+          git add streamflow.csv streamflow-report.txt
+          git diff --staged --quiet || git commit -m \
+            "data: daily streamflow update $(date -u '+%Y-%m-%d') [skip ci]"
           git push

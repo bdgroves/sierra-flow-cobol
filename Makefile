@@ -1,38 +1,43 @@
-# Sierra Flow - USGS Streamflow Processor
+# Sierra Flow v2 - USGS Streamflow Processor
 # GNU COBOL Makefile
 
 COBC     = cobc
-COBFLAGS = -x -free
+COBFLAGS = -x
 TARGET   = sierra-flow
 SOURCE   = SIERRA-FLOW.cob
-INPUT    = streamflow.csv
 OUTPUT   = streamflow-report.txt
 
-.PHONY: all build run clean check
+.PHONY: all build run fetch clean check
 
-all: build run
+all: fetch build run
+
+fetch:
+	@echo "Fetching live USGS data..."
+	python3 fetch_usgs.py
 
 build:
 	@echo "Compiling $(SOURCE)..."
 	$(COBC) $(COBFLAGS) -o $(TARGET) $(SOURCE)
 	@echo "Build complete: ./$(TARGET)"
 
-run: $(TARGET) $(INPUT)
-	@echo "Running Sierra Flow processor..."
+run: $(TARGET)
+	@echo "Running Sierra Flow v2..."
 	./$(TARGET)
 	@echo ""
-	@echo "--- REPORT OUTPUT ---"
+	@echo "--- REPORT ---"
 	@cat $(OUTPUT)
 
 clean:
-	@rm -f $(TARGET) $(OUTPUT)
-	@echo "Cleaned build artifacts."
+	@rm -f $(TARGET) $(OUTPUT) sort-work.tmp
+	@echo "Cleaned."
 
 check:
 	@which cobc > /dev/null 2>&1 || \
-		(echo "ERROR: GnuCOBOL not found. Install with:" && \
+		(echo "ERROR: GnuCOBOL not found." && \
 		 echo "  Ubuntu/Debian: sudo apt install gnucobol" && \
 		 echo "  macOS:         brew install gnucobol" && \
-		 echo "  Windows:       Use WSL or GnuCOBOL installer from sourceforge" && \
 		 exit 1)
-	@echo "GnuCOBOL found: $$(cobc --version | head -1)"
+	@which python3 > /dev/null 2>&1 || \
+		(echo "ERROR: Python3 not found." && exit 1)
+	@echo "GnuCOBOL: $$(cobc --version | head -1)"
+	@echo "Python:   $$(python3 --version)"
