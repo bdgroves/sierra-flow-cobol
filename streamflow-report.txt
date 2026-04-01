@@ -1,0 +1,49 @@
+
+=================================================================================================
+
+                                             SIERRA NEVADA WATERSHED ANALYSIS SYSTEM
+
+                                               USGS STREAMFLOW DATA PROCESSING REPORT
+
+                                                     PROCESSING DATE:2026-04-01
+
+=================================================================================================
+
+SECTION I: STATION STATISTICS SUMMARY
+
+  SITE ID          STATION NAME                         RECORDS  MEAN (CFS)   MIN (CFS)   MAX (CFS)  ALERTS   LAST DATE   LAST (CFS)
+------------------------------------------------------------------------------------------------------------------------------------
+  11427000         American River at Fair Oaks              12     2714.88     1185.00     6100.00      2     2024-01-12     1420.75
+  11185500         Merced River at Pohono Bridge            12     1292.67      298.75     3100.50      0     2024-01-12      410.75
+  11432500         North Fork Feather River                 12     3643.00      798.25     8500.50      4     2024-01-12     1350.25
+  11230500         San Joaquin River at Friant              12      137.17       35.25      310.50      3     2024-01-12       78.25
+  11303000         Kings River below Pine Flat Da           12     1146.75      498.25     2100.50      0     2024-01-12      610.25
+  11381500         Stony Creek near Fruto                   12      299.71       21.75      720.50      3     2024-01-12       95.25
+  11349000         McCloud River above Shasta Lak           12     1320.50      648.25     2480.50      0     2024-01-12      650.25
+  11390000         Sacramento River at Butte City           12    17183.58    10600.25    28000.50     12     2024-01-12    10600.25
+
+SECTION II: THRESHOLD ALERT ANALYSIS
+
+  ALERT CONDITIONS: LOW < 50 CFS | HIGH > 5000 CFS
+
+  SITE ID          STATION NAME                         MEAN (CFS)  LOW THRESH  HIGH THRESH  ALERT STATUS
+------------------------------------------------------------------------------------------------------------------------------------
+  11427000         American River at Fair Oaks            2714.88       50.00     5000.00   NORMAL
+  11185500         Merced River at Pohono Bridge          1292.67       50.00     5000.00   NORMAL
+  11432500         North Fork Feather River               3643.00       50.00     5000.00   NORMAL
+  11230500         San Joaquin River at Friant             137.17       50.00     5000.00   NORMAL
+  11303000         Kings River below Pine Flat Da         1146.75       50.00     5000.00   NORMAL
+  11381500         Stony Creek near Fruto                  299.71       50.00     5000.00   NORMAL
+  11349000         McCloud River above Shasta Lak         1320.50       50.00     5000.00   NORMAL
+  11390000         Sacramento River at Butte City        17183.58       50.00     5000.00   *** HIGH FLOW *
+
+SECTION III: RUN SUMMARY
+
+    STATIONS PROCESSED:              8
+    TOTAL DATA RECORDS READ:        96
+    RECORDS SKIPPED (INVALID):       0
+    TOTAL THRESHOLD ALERTS:         24
+
+=================================================================================================
+  END OF REPORT - SIERRA NEVADA WATERSHED ANALYSIS
+=================================================================================================
