@@ -19,7 +19,7 @@ SECTION I: STATION STATISTICS  (SORTED BY MEAN CFS)
   11274790         Tuolumne River Grand Canyon        31      1362.65      465.00     2350.00   151.41   ─ STABLE      0
   11264500         Merced River at Happy Isles        31       932.68      343.00     1650.00   207.26   ─ STABLE      0
   11276500         Tuolumne River at Hetch Hetchy     31       443.61      127.00     3400.00   126.75   ─ STABLE      0
-  11303000         Stanislaus River at Ripon          31       243.55      177.00      746.00    40.59   ─ STABLE      0
+  11303000         Stanislaus River at Ripon          31       244.06      177.00      762.00    40.68   ─ STABLE      0
   11284400         Big Creek near Hetch Hetchy        31         3.08        1.36        9.53    38.50   ─ STABLE     31
 
 SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS
@@ -32,7 +32,7 @@ SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS
   11274790         Tuolumne River Grand Canyon       1362.65     1400.00   151.41    NORMAL
   11264500         Merced River at Happy Isles        932.68      800.00   207.26    ABOVE NORMAL
   11276500         Tuolumne River at Hetch Hetchy     443.61      450.00   126.75    NORMAL
-  11303000         Stanislaus River at Ripon          243.55      600.00    40.59    BELOW NORMAL
+  11303000         Stanislaus River at Ripon          244.06      600.00    40.68    BELOW NORMAL
   11284400         Big Creek near Hetch Hetchy          3.08        8.00    38.50    BELOW NORMAL
 
 SECTION III: WATERSHED BASIN ROLL-UP
@@ -41,7 +41,7 @@ SECTION III: WATERSHED BASIN ROLL-UP
 ------------------------------------------------------------------------------------------------------------------------------------
   TUOLUMNE                 5            5742.11
   MERCED                   2            2580.00
-  STANISLAUS               1             243.55
+  STANISLAUS               1             244.06
 
 SECTION IV: RUN SUMMARY
 
