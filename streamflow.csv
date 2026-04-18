@@ -1,5 +1,4 @@
 site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
-11276500,Tuolumne River at Hetch Hetchy,2026-03-18,214.0,4.21
 11276500,Tuolumne River at Hetch Hetchy,2026-03-19,404.0,5.12
 11276500,Tuolumne River at Hetch Hetchy,2026-03-20,187.0,4.05
 11276500,Tuolumne River at Hetch Hetchy,2026-03-21,209.0,4.18
@@ -29,8 +28,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11276500,Tuolumne River at Hetch Hetchy,2026-04-14,231.0,4.3
 11276500,Tuolumne River at Hetch Hetchy,2026-04-15,232.0,4.31
 11276500,Tuolumne River at Hetch Hetchy,2026-04-16,236.0,4.33
-11276500,Tuolumne River at Hetch Hetchy,2026-04-17,245.0,4.38
-11274790,Tuolumne River Grand Canyon,2026-03-18,2000.0,12.88
+11276500,Tuolumne River at Hetch Hetchy,2026-04-17,242.0,4.36
+11276500,Tuolumne River at Hetch Hetchy,2026-04-18,245.0,4.38
 11274790,Tuolumne River Grand Canyon,2026-03-19,1980.0,12.86
 11274790,Tuolumne River Grand Canyon,2026-03-20,2350.0,13.47
 11274790,Tuolumne River Grand Canyon,2026-03-21,2090.0,13.01
@@ -60,8 +59,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11274790,Tuolumne River Grand Canyon,2026-04-14,1210.0,11.54
 11274790,Tuolumne River Grand Canyon,2026-04-15,1220.0,11.55
 11274790,Tuolumne River Grand Canyon,2026-04-16,1150.0,11.41
-11274790,Tuolumne River Grand Canyon,2026-04-17,1050.0,11.21
-11289650,Tuolumne River at LaGrange Dam,2026-03-18,2110.0,8.83
+11274790,Tuolumne River Grand Canyon,2026-04-17,1070.0,11.25
+11274790,Tuolumne River Grand Canyon,2026-04-18,1020.0,11.14
 11289650,Tuolumne River at LaGrange Dam,2026-03-19,1740.0,8.26
 11289650,Tuolumne River at LaGrange Dam,2026-03-20,1400.0,7.66
 11289650,Tuolumne River at LaGrange Dam,2026-03-21,1110.0,7.09
@@ -91,8 +90,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11289650,Tuolumne River at LaGrange Dam,2026-04-14,233.0,4.64
 11289650,Tuolumne River at LaGrange Dam,2026-04-15,231.0,4.63
 11289650,Tuolumne River at LaGrange Dam,2026-04-16,238.0,4.66
-11289650,Tuolumne River at LaGrange Dam,2026-04-17,382.0,5.2
-11290000,Tuolumne River at Modesto,2026-03-18,2700.0,43.56
+11289650,Tuolumne River at LaGrange Dam,2026-04-17,456.0,5.45
+11289650,Tuolumne River at LaGrange Dam,2026-04-18,603.0,5.89
 11290000,Tuolumne River at Modesto,2026-03-19,2320.0,42.73
 11290000,Tuolumne River at Modesto,2026-03-20,1930.0,41.82
 11290000,Tuolumne River at Modesto,2026-03-21,1570.0,40.95
@@ -122,8 +121,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11290000,Tuolumne River at Modesto,2026-04-14,236.0,37.02
 11290000,Tuolumne River at Modesto,2026-04-15,239.0,37.03
 11290000,Tuolumne River at Modesto,2026-04-16,236.0,37.02
-11290000,Tuolumne River at Modesto,2026-04-17,239.0,37.03
-11266500,Merced River at Pohono Bridge,2026-03-18,2420.0,6.36
+11290000,Tuolumne River at Modesto,2026-04-17,267.0,37.14
+11290000,Tuolumne River at Modesto,2026-04-18,329.0,37.37
 11266500,Merced River at Pohono Bridge,2026-03-19,2370.0,6.3
 11266500,Merced River at Pohono Bridge,2026-03-20,2780.0,6.75
 11266500,Merced River at Pohono Bridge,2026-03-21,2420.0,6.35
@@ -153,8 +152,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11266500,Merced River at Pohono Bridge,2026-04-14,1470.0,5.14
 11266500,Merced River at Pohono Bridge,2026-04-15,1440.0,5.1
 11266500,Merced River at Pohono Bridge,2026-04-16,1400.0,5.04
-11266500,Merced River at Pohono Bridge,2026-04-17,1330.0,4.94
-11264500,Merced River at Happy Isles,2026-03-18,1390.0,4.99
+11266500,Merced River at Pohono Bridge,2026-04-17,1280.0,4.85
+11266500,Merced River at Pohono Bridge,2026-04-18,1310.0,4.9
 11264500,Merced River at Happy Isles,2026-03-19,1430.0,5.04
 11264500,Merced River at Happy Isles,2026-03-20,1650.0,5.35
 11264500,Merced River at Happy Isles,2026-03-21,1430.0,5.04
@@ -185,7 +184,7 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11264500,Merced River at Happy Isles,2026-04-15,730.0,3.88
 11264500,Merced River at Happy Isles,2026-04-16,672.0,3.76
 11264500,Merced River at Happy Isles,2026-04-17,635.0,3.68
-11303000,Stanislaus River at Ripon,2026-03-18,205.0,38.19
+11264500,Merced River at Happy Isles,2026-04-18,649.0,3.71
 11303000,Stanislaus River at Ripon,2026-03-19,187.0,38.04
 11303000,Stanislaus River at Ripon,2026-03-20,188.0,38.05
 11303000,Stanislaus River at Ripon,2026-03-21,185.0,38.02
@@ -215,8 +214,8 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11303000,Stanislaus River at Ripon,2026-04-14,1030.0,41.96
 11303000,Stanislaus River at Ripon,2026-04-15,1180.0,42.42
 11303000,Stanislaus River at Ripon,2026-04-16,839.0,41.36
-11303000,Stanislaus River at Ripon,2026-04-17,778.0,41.13
-11284400,Big Creek near Hetch Hetchy,2026-03-18,2.2,2.1
+11303000,Stanislaus River at Ripon,2026-04-17,814.0,41.26
+11303000,Stanislaus River at Ripon,2026-04-18,973.0,41.8
 11284400,Big Creek near Hetch Hetchy,2026-03-19,2.09,2.09
 11284400,Big Creek near Hetch Hetchy,2026-03-20,2.09,2.09
 11284400,Big Creek near Hetch Hetchy,2026-03-21,1.99,2.08
@@ -246,4 +245,5 @@ site_id,site_name,measurement_date,discharge_cfs,gage_height_ft
 11284400,Big Creek near Hetch Hetchy,2026-04-14,5.24,2.3
 11284400,Big Creek near Hetch Hetchy,2026-04-15,3.64,2.21
 11284400,Big Creek near Hetch Hetchy,2026-04-16,2.92,2.16
-11284400,Big Creek near Hetch Hetchy,2026-04-17,2.66,2.14
+11284400,Big Creek near Hetch Hetchy,2026-04-17,2.42,2.12
+11284400,Big Creek near Hetch Hetchy,2026-04-18,2.31,2.11
