@@ -5,7 +5,7 @@
 
                                             USGS STREAMFLOW DATA PROCESSING REPORT V2.0
 
-                                                     PROCESSING DATE:2026-05-06
+                                                     PROCESSING DATE:2026-05-07
 
 =================================================================================================
 
@@ -13,35 +13,35 @@ SECTION I: STATION STATISTICS  (SORTED BY MEAN CFS)
 
   SITE ID          STATION NAME                    RECORDS  MEAN (CFS)   MIN (CFS)   MAX (CFS)  % NORMAL  TREND       ALERTS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11266500         Merced River at Pohono Bridge      31      1274.19     1010.00     1480.00   159.27   ─ STABLE      0
-  11274790         Tuolumne River Grand Canyon        31      1098.45      798.00     1360.00   122.05   ─ STABLE      0
-  11303000         Stanislaus River at Ripon          31       936.16      388.00     1490.00   156.03   ─ STABLE      0
-  11264500         Merced River at Happy Isles        31       678.87      494.00      843.00   150.86   ─ STABLE      0
-  11290000         Tuolumne River at Modesto          31       559.77      236.00     1290.00    39.98   ─ STABLE      0
-  11289650         Tuolumne River at LaGrange Dam     31       559.16      229.00     1420.00    46.60   ─ STABLE      0
-  11276500         Tuolumne River at Hetch Hetchy     31       362.94      204.00      532.00   103.70   ─ STABLE      0
-  11284400         Big Creek near Hetch Hetchy        31         5.58        1.15       27.90    69.75   ─ STABLE     31
+  11266500         Merced River at Pohono Bridge      31      1285.16     1010.00     1480.00   160.65   ─ STABLE      0
+  11274790         Tuolumne River Grand Canyon        31      1121.68      798.00     1430.00   124.63   ─ STABLE      0
+  11303000         Stanislaus River at Ripon          31       903.13      330.00     1490.00   150.52   ─ STABLE      0
+  11264500         Merced River at Happy Isles        31       690.58      494.00      908.00   153.46   ─ STABLE      0
+  11290000         Tuolumne River at Modesto          31       559.42      236.00     1290.00    39.96   ─ STABLE      0
+  11289650         Tuolumne River at LaGrange Dam     31       559.26      224.00     1420.00    46.61   ─ STABLE      0
+  11276500         Tuolumne River at Hetch Hetchy     31       402.87      204.00     1280.00   115.11   ─ STABLE      0
+  11284400         Big Creek near Hetch Hetchy        31         5.61        1.15       27.90    70.13   ─ STABLE     31
 
 SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS
 
   SITE ID          STATION NAME                    MEAN (CFS)  MEDIAN CFS  % NORMAL  ALERT STATUS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11266500         Merced River at Pohono Bridge     1274.19      350.00   159.27    NORMAL
-  11274790         Tuolumne River Grand Canyon       1098.45      900.00   122.05    NORMAL
-  11303000         Stanislaus River at Ripon          936.16     1200.00   156.03    NORMAL
-  11264500         Merced River at Happy Isles        678.87     1400.00   150.86    NORMAL
-  11290000         Tuolumne River at Modesto          559.77      800.00    39.98    BELOW NORMAL
-  11289650         Tuolumne River at LaGrange Dam     559.16      450.00    46.60    BELOW NORMAL
-  11276500         Tuolumne River at Hetch Hetchy     362.94      600.00   103.70    NORMAL
-  11284400         Big Creek near Hetch Hetchy          5.58        8.00    69.75    NORMAL
+  11266500         Merced River at Pohono Bridge     1285.16      350.00   160.65    NORMAL
+  11274790         Tuolumne River Grand Canyon       1121.68      900.00   124.63    NORMAL
+  11303000         Stanislaus River at Ripon          903.13     1200.00   150.52    NORMAL
+  11264500         Merced River at Happy Isles        690.58     1400.00   153.46    NORMAL
+  11290000         Tuolumne River at Modesto          559.42      800.00    39.96    BELOW NORMAL
+  11289650         Tuolumne River at LaGrange Dam     559.26      450.00    46.61    BELOW NORMAL
+  11276500         Tuolumne River at Hetch Hetchy     402.87      600.00   115.11    NORMAL
+  11284400         Big Creek near Hetch Hetchy          5.61        8.00    70.13    NORMAL
 
 SECTION III: WATERSHED BASIN ROLL-UP
 
   WATERSHED BASIN       STATIONS  TOTAL MEAN CFS
 ------------------------------------------------------------------------------------------------------------------------------------
-  TUOLUMNE                 5            2585.90
-  MERCED                   2            1953.06
-  STANISLAUS               1             936.16
+  TUOLUMNE                 5            2648.84
+  MERCED                   2            1975.74
+  STANISLAUS               1             903.13
 
 SECTION IV: RUN SUMMARY
 
