@@ -1,22 +1,44 @@
       *================================================================*
-      * SIERRA-FLOW.COB  VERSION 2.0                                  *
-      * USGS STREAMFLOW DATA PROCESSOR                                *
-      * SIERRA NEVADA WATERSHED ANALYSIS SYSTEM                       *
-      *                                                               *
-      * NEW IN V2:                                                     *
-      *   - DUAL INPUT FILES (streamflow.csv + baselines.csv)         *
-      *   - PERCENT OF NORMAL CALCULATION                             *
-      *   - 7-DAY TREND ANALYSIS (RISING / FALLING / STABLE)         *
-      *   - COBOL SORT VERB (rank stations by mean discharge)         *
-      *   - WATERSHED BASIN ROLL-UP TOTALS                            *
-      *   - REPORT SECTION (declarative report layout engine)         *
-      *                                                               *
-      * COMPILE: cobc -x -o sierra-flow SIERRA-FLOW.cob               *
+      * SIERRA-FLOW.COB  VERSION 3.0                                   *
+      * USGS STREAMFLOW DATA PROCESSOR                                 *
+      * SIERRA NEVADA WATERSHED ANALYSIS SYSTEM                        *
+      *                                                                *
+      * FIRST RAN 2026-04-01, ARTEMIS II LAUNCH DAY (V1).              *
+      *                                                                *
+      * INPUT : sites.csv       THE EIGHT GAGES, BASIN AND ORDER       *
+      *         normals.csv     NORMAL FLOW FOR EACH DAY OF THE YEAR,  *
+      *                         BUILT BY NORMALS.cob FROM 30 YEARS     *
+      *         streamflow.csv  USGS DAILY MEANS, LAST 60 DAYS         *
+      * OUTPUT: streamflow-report.txt  132-COLUMN PRINTED REPORT       *
+      *         results.csv            THE SAME NUMBERS FOR THE WEB    *
+      *                                                                *
+      * FOR EACH GAGE: THE LATEST DAILY MEAN AGAINST THE NORMAL FOR    *
+      * THAT DATE (USGS WATERWATCH CLASSES: BELOW THE 10TH PERCENTILE  *
+      * IS MUCH BELOW NORMAL, 10-24 BELOW, 25-75 NORMAL, 76-90 ABOVE,  *
+      * OVER 90 MUCH ABOVE); THE LAST 30 DAYS AGAINST THE NORMAL FOR   *
+      * THOSE 30 DATES; AND THE LAST 7 DAYS AGAINST THE 7 BEFORE.      *
+      *                                                                *
+      * V3 FIXES (2026-10-02):                                         *
+      *   - THE SORT CARRIED EACH STATION'S NUMBERS BUT NOT ITS        *
+      *     BASELINE, SO AFTER SORTING THE MEDIANS AND THRESHOLDS      *
+      *     BELONGED TO OTHER STATIONS. THE SORT NOW CARRIES ONLY      *
+      *     THE TABLE INDEX.                                           *
+      *   - THE TREND WORK FIELD WAS UNSIGNED, SO A FALLING RIVER      *
+      *     COULD NEVER READ FALLING.                                  *
+      *   - ONE MEDIAN PER GAGE ALL YEAR -> A NORMAL FOR EVERY DAY.    *
+      *   - THE BASIN ROLL-UP ADDED UP GAGES ON THE SAME RIVER, SO     *
+      *     THE SAME WATER WAS COUNTED UP TO FOUR TIMES. IT NOW        *
+      *     REPORTS EACH BASIN'S LOWEST GAGE.                          *
+      *                                                                *
+      * RETURN CODE 0 = NORMAL, 4 = A GAGE IS STALE OR HAS NO DATA,    *
+      *             12 = A FILE COULD NOT BE OPENED.                   *
+      *                                                                *
+      * COMPILE: cobc -x -o sierra-flow SIERRA-FLOW.cob                *
       *================================================================*
        IDENTIFICATION DIVISION.
        PROGRAM-ID. SIERRA-FLOW.
        AUTHOR. BROOKS GROVES.
-       DATE-WRITTEN. 2026.
+       DATE-WRITTEN. 2026-04-01.
        SECURITY. UNCLASSIFIED - PUBLIC DATA.
 
        ENVIRONMENT DIVISION.
@@ -26,836 +48,1027 @@
 
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT STREAMFLOW-FILE
-               ASSIGN TO 'streamflow.csv'
+           SELECT SITES-FILE ASSIGN TO 'sites.csv'
                ORGANIZATION IS LINE SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL
-               FILE STATUS IS WS-SF-STATUS.
-
-           SELECT BASELINE-FILE
-               ASSIGN TO 'baselines.csv'
+               FILE STATUS IS WS-FS-SITES.
+           SELECT NORMALS-FILE ASSIGN TO 'normals.csv'
                ORGANIZATION IS LINE SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL
-               FILE STATUS IS WS-BL-STATUS.
-
-           SELECT SORT-FILE
-               ASSIGN TO 'sort-work.tmp'
-               ORGANIZATION IS LINE SEQUENTIAL.
-
-           SELECT REPORT-FILE
-               ASSIGN TO 'streamflow-report.txt'
+               FILE STATUS IS WS-FS-NORM.
+           SELECT FLOW-FILE ASSIGN TO 'streamflow.csv'
                ORGANIZATION IS LINE SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL
-               FILE STATUS IS WS-RPT-STATUS.
+               FILE STATUS IS WS-FS-FLOW.
+           SELECT REPORT-FILE ASSIGN TO 'streamflow-report.txt'
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-FS-RPT.
+           SELECT RESULTS-FILE ASSIGN TO 'results.csv'
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS IS WS-FS-RES.
+           SELECT SORT-FILE ASSIGN TO 'sierra-sort.tmp'.
 
        DATA DIVISION.
        FILE SECTION.
-
-       FD  STREAMFLOW-FILE
-           RECORD CONTAINS 1 TO 200 CHARACTERS.
-       01  SF-RECORD                    PIC X(200).
-
-       FD  BASELINE-FILE
-           RECORD CONTAINS 1 TO 200 CHARACTERS.
-       01  BL-RECORD                    PIC X(200).
+       FD  SITES-FILE.
+       01  SITES-REC                    PIC X(200).
+       FD  NORMALS-FILE.
+       01  NORMALS-REC                  PIC X(120).
+       FD  FLOW-FILE.
+       01  FLOW-REC                     PIC X(120).
+       FD  REPORT-FILE.
+       01  RPT-LINE                     PIC X(132).
+       FD  RESULTS-FILE.
+       01  RES-REC                      PIC X(400).
 
        SD  SORT-FILE.
-       01  SORT-RECORD.
-           05  SR-MEAN                  PIC 9(9)V99.
-           05  SR-SITE-ID               PIC X(15).
-           05  SR-SITE-NAME             PIC X(40).
-           05  SR-RECORDS               PIC 9(5).
-           05  SR-MIN                   PIC 9(7)V99.
-           05  SR-MAX                   PIC 9(7)V99.
-           05  SR-ALERTS                PIC 9(4).
-           05  SR-PCT-NORMAL            PIC 9(5)V99.
-           05  SR-TREND                 PIC X(10).
-           05  SR-LAST-DATE             PIC X(10).
-           05  SR-LAST-VALUE            PIC 9(7)V99.
-           05  SR-BASIN                 PIC X(20).
-
-       FD  REPORT-FILE
-           RECORD CONTAINS 132 CHARACTERS.
-       01  RPT-LINE                     PIC X(132).
+       01  SORT-REC.
+           05  SR-BASIN-SEQ             PIC 9.
+           05  SR-SEQ                   PIC 99.
+           05  SR-IDX                   PIC 99.
 
        WORKING-STORAGE SECTION.
-
       *--- FILE STATUS ---
-       01  WS-SF-STATUS                 PIC XX VALUE SPACES.
-       01  WS-BL-STATUS                 PIC XX VALUE SPACES.
-       01  WS-RPT-STATUS                PIC XX VALUE SPACES.
-       01  WS-EOF-SF                    PIC X VALUE 'N'.
-           88  EOF-STREAMFLOW           VALUE 'Y'.
-       01  WS-EOF-BL                    PIC X VALUE 'N'.
-           88  EOF-BASELINE             VALUE 'Y'.
-       01  WS-FIRST-LINE                PIC X VALUE 'Y'.
-           88  IS-HEADER                VALUE 'Y'.
+       01  WS-FS-SITES                  PIC XX.
+       01  WS-FS-NORM                   PIC XX.
+       01  WS-FS-FLOW                   PIC XX.
+       01  WS-FS-RPT                    PIC XX.
+       01  WS-FS-RES                    PIC XX.
+       01  WS-EOF                       PIC X.
+           88  AT-EOF                   VALUE 'Y'.
+       01  WS-FIRST                     PIC X.
 
-      *--- CSV PARSE ---
-       01  WS-PARSE-AREA.
-           05  WS-FIELDS OCCURS 6 TIMES PIC X(50).
-           05  WS-PARSE-PTR             PIC 99 VALUE 1.
-           05  WS-FIELD-NUM             PIC 9  VALUE 1.
-           05  WS-FIELD-PTR             PIC 99 VALUE 1.
-           05  WS-CHAR                  PIC X.
+      *--- CSV FIELDS (UNSTRING TARGETS) ---
+       01  WS-FIELDS.
+           05  WS-FLD                   PIC X(60) OCCURS 11.
 
-      *--- CURRENT STREAMFLOW RECORD ---
-       01  WS-CURRENT-SF.
-           05  WS-SITE-ID               PIC X(15).
-           05  WS-SITE-NAME             PIC X(40).
-           05  WS-MEAS-DATE             PIC X(10).
-           05  WS-DISCHARGE-STR         PIC X(12).
-           05  WS-DISCHARGE             PIC 9(7)V99 VALUE ZEROS.
-           05  WS-GAGE-HT-STR           PIC X(10).
+      *--- DAYS BEFORE EACH MONTH, LEAP-YEAR CALENDAR (FEB 29 = 60) ---
+       01  WS-CUM-DATA.
+           05  FILLER                   PIC X(36) VALUE
+               '000031060091121152182213244274305335'.
+       01  WS-CUM-TABLE REDEFINES WS-CUM-DATA.
+           05  WS-CUM                   PIC 999 OCCURS 12.
 
-      *--- CURRENT BASELINE RECORD ---
-       01  WS-CURRENT-BL.
-           05  WS-BL-SITE-ID            PIC X(15).
-           05  WS-BL-SITE-NAME          PIC X(40).
-           05  WS-BL-MEDIAN-STR         PIC X(12).
-           05  WS-BL-MEDIAN             PIC 9(7)V99 VALUE ZEROS.
-           05  WS-BL-LOW-STR            PIC X(12).
-           05  WS-BL-LOW                PIC 9(7)V99 VALUE ZEROS.
-           05  WS-BL-HIGH-STR           PIC X(12).
-           05  WS-BL-HIGH               PIC 9(7)V99 VALUE ZEROS.
+      *--- THE GAGES ---
+       01  WS-NSITES                    PIC 99 VALUE 0.
+       01  WS-SITE-TABLE.
+           05  WS-SITE OCCURS 12 INDEXED BY SX.
+               10  S-ID                 PIC X(8).
+               10  S-NAME               PIC X(26).
+               10  S-BASIN              PIC X(12).
+               10  S-BASIN-SEQ          PIC 9.
+               10  S-SEQ                PIC 99.
+               10  S-REG                PIC X(10).
+               10  S-NDAYS              PIC 99.
+               10  S-DAY OCCURS 70.
+                   15  D-DATE           PIC X(10).
+                   15  D-INT            PIC 9(8).
+                   15  D-SLOT           PIC 999.
+                   15  D-FLOW           PIC 9(7)V99.
+               10  S-NORM OCCURS 366.
+                   15  N-YEARS          PIC 99.
+                   15  N-P10            PIC 9(7)V99.
+                   15  N-P25            PIC 9(7)V99.
+                   15  N-P50            PIC 9(7)V99.
+                   15  N-P75            PIC 9(7)V99.
+                   15  N-P90            PIC 9(7)V99.
+      *--- RESULTS FOR THE GAGE ---
+               10  R-LAST-DATE          PIC X(10).
+               10  R-LAST-SLOT          PIC 999.
+               10  R-LAST-FLOW          PIC 9(7)V99.
+               10  R-CLASS              PIC X(17).
+               10  R-PCT-MED            PIC 9(5)V9.
+               10  R-HAS-MED            PIC X.
+               10  R-MEAN30             PIC 9(7)V99.
+               10  R-MIN30              PIC 9(7)V99.
+               10  R-MAX30              PIC 9(7)V99.
+               10  R-N30                PIC 99.
+               10  R-PCT30              PIC 9(5)V9.
+               10  R-HAS-PCT30          PIC X.
+               10  R-LOW-DAYS           PIC 99.
+               10  R-HIGH-DAYS          PIC 99.
+               10  R-TREND              PIC X(7).
+               10  R-TREND-PCT          PIC S9(5)V9.
+               10  R-HAS-TREND          PIC X.
+               10  R-AGE                PIC 9(4).
+               10  R-STALE              PIC X.
 
-      *--- STATION ACCUMULATOR TABLE (UP TO 12 GAGES) ---
-       01  WS-STATION-COUNT             PIC 99 VALUE 0.
-       01  WS-STATION-TABLE.
-           05  WS-STATION OCCURS 12 TIMES
-                          INDEXED BY STN-IDX.
-               10  ST-SITE-ID           PIC X(15).
-               10  ST-SITE-NAME         PIC X(40).
-               10  ST-BASIN             PIC X(20).
-               10  ST-RECORD-COUNT      PIC 9(5)  VALUE 0.
-               10  ST-SUM               PIC 9(9)V99 VALUE 0.
-               10  ST-MEAN              PIC 9(7)V99 VALUE 0.
-               10  ST-MIN               PIC 9(7)V99 VALUE 9999999.
-               10  ST-MAX               PIC 9(7)V99 VALUE 0.
-               10  ST-ALERT-COUNT       PIC 9(4)  VALUE 0.
-               10  ST-MEDIAN            PIC 9(7)V99 VALUE 1.
-               10  ST-LOW-THRESH        PIC 9(7)V99 VALUE 50.
-               10  ST-HIGH-THRESH       PIC 9(7)V99 VALUE 5000.
-               10  ST-PCT-NORMAL        PIC 9(5)V99 VALUE 0.
-               10  ST-TREND             PIC X(10) VALUE 'STABLE'.
-               10  ST-LAST-DATE         PIC X(10).
-               10  ST-LAST-VALUE        PIC 9(7)V99 VALUE 0.
-               10  ST-PREV-VALUE        PIC 9(7)V99 VALUE 0.
-               10  ST-TREND-SUM         PIC S9(9)V99 VALUE 0.
-               10  ST-TREND-COUNT       PIC 9(4)  VALUE 0.
+      *--- SORTED ORDER (TABLE INDEXES) ---
+       01  WS-NORDER                    PIC 99 VALUE 0.
+       01  WS-ORDER-TABLE.
+           05  WS-ORDER                 PIC 99 OCCURS 12.
+       01  WS-OI                        PIC 99.
 
-      *--- BASELINE CACHE (loaded before stations are known) ---
-       01  WS-BL-COUNT                  PIC 9 VALUE 0.
-       01  WS-BL-CACHE.
-           05  WS-BLC OCCURS 12 TIMES
-                         INDEXED BY BLC-IDX.
-               10  BLC-SITE-ID          PIC X(15).
-               10  BLC-MEDIAN           PIC 9(7)V99 VALUE 0.
-               10  BLC-LOW              PIC 9(7)V99 VALUE 50.
-               10  BLC-HIGH             PIC 9(7)V99 VALUE 5000.
-
-      *--- BASIN ROLL-UP TABLE ---
-       01  WS-BASIN-COUNT               PIC 9 VALUE 0.
+      *--- BASINS ---
+       01  WS-NBASINS                   PIC 9 VALUE 0.
        01  WS-BASIN-TABLE.
-           05  WS-BASIN OCCURS 5 TIMES
-                         INDEXED BY BSN-IDX.
-               10  BS-NAME              PIC X(20).
-               10  BS-TOTAL             PIC 9(9)V99 VALUE 0.
-               10  BS-STATION-COUNT     PIC 9 VALUE 0.
+           05  WS-BASIN OCCURS 5 INDEXED BY BX.
+               10  B-NAME               PIC X(12).
+               10  B-SEQ                PIC 9.
+               10  B-GAGES              PIC 9.
+               10  B-OUTLET             PIC 99.
+               10  B-OUTLET-SEQ         PIC 99.
+               10  B-CLASS-N            PIC 9 OCCURS 5.
 
-      *--- GRAND TOTALS ---
-       01  WS-TOTAL-RECORDS             PIC 9(6) VALUE 0.
-       01  WS-TOTAL-ALERTS              PIC 9(5) VALUE 0.
-       01  WS-SKIPPED-RECORDS           PIC 9(5) VALUE 0.
+      *--- WORK FIELDS ---
+       01  WS-I                         PIC 99.
+       01  WS-J                         PIC 99.
+       01  WS-K                         PIC 99.
+       01  WS-FOUND                     PIC 99.
+       01  WS-LAST                      PIC 99.
+       01  WS-FROM                      PIC 99.
+       01  WS-SLOT                      PIC 999.
+       01  WS-MONTH                     PIC 99.
+       01  WS-DAYN                      PIC 99.
+       01  WS-YMD-X                     PIC X(8).
+       01  WS-YMD REDEFINES WS-YMD-X    PIC 9(8).
+       01  WS-FLOW                      PIC 9(7)V99.
+       01  WS-CLASS                     PIC X(17).
+       01  WS-CLASS-I                   PIC 9.
+       01  WS-SUM                       PIC 9(9)V99.
+       01  WS-SUM-MED                   PIC 9(9)V99.
+       01  WS-MED-DAYS                  PIC 99.
+       01  WS-MEAN-A                    PIC 9(7)V99.
+       01  WS-MEAN-B                    PIC 9(7)V99.
+       01  WS-CHANGE                    PIC S9(7)V99.
 
-      *--- WORK VARIABLES ---
-       01  WS-FOUND-STATION             PIC X VALUE 'N'.
-       01  WS-CURRENT-STN-IDX          PIC 99 VALUE 0.
-       01  WS-ALERT-FLAG                PIC X VALUE 'N'.
-       01  WS-TREND-DIFF                PIC S9(7)V99 VALUE 0.
-       01  WS-TEMP-COMPUTE              PIC 9(9)V99 VALUE 0.
+      *--- RUN DATE AND COUNTS ---
+       01  WS-NOW                       PIC X(21).
+       01  WS-RUN-YMD                   PIC 9(8).
+       01  WS-RUN-INT                   PIC 9(8).
+       01  WS-RUN-DATE                  PIC X(10).
+       01  WS-RUN-TIME                  PIC X(8).
+       01  WS-RUN-TZ                    PIC X(9).
+       01  WS-RC                        PIC 99 VALUE 0.
+       01  WS-SITES-READ                PIC 9(4) VALUE 0.
+       01  WS-NORMS-READ                PIC 9(6) VALUE 0.
+       01  WS-FLOWS-READ                PIC 9(6) VALUE 0.
+       01  WS-SKIPPED                   PIC 9(6) VALUE 0.
+       01  WS-STALE                     PIC 99 VALUE 0.
 
-      *--- DATE ---
-       01  WS-CURRENT-DATE.
-           05  WS-YEAR                  PIC 9(4).
-           05  WS-MONTH                 PIC 99.
-           05  WS-DAY                   PIC 99.
+      *--- EDITED FIELDS ---
+       01  WS-ED-CNT                    PIC Z(5)9.
+       01  WS-ED-CFS                    PIC Z(6)9.99.
+       01  WS-ED-PCT                    PIC Z(4)9.9.
+       01  WS-ED-SPCT                   PIC -(5)9.9.
+       01  WS-ED-SMALL                  PIC Z9.
+       01  WS-PTR                       PIC 9(3).
 
-      *--- REPORT LINE BUILDERS ---
-       01  WS-BLANK-LINE                PIC X(132) VALUE SPACES.
-       01  WS-REPORT-LINE               PIC X(132) VALUE SPACES.
+      *--- REPORT LINES ---
+       01  WS-RULE-EQ                   PIC X(132) VALUE ALL '='.
+       01  WS-RULE-DASH                 PIC X(132) VALUE ALL '-'.
+       01  WS-BLANK                     PIC X(132) VALUE SPACES.
+       01  WS-LINE                      PIC X(132).
 
-       01  WS-HEADER-1.
-           05  FILLER PIC X(132) VALUE
-           '================================================================
-      -        '====================================='.
+       01  WS-S1-HEAD.
+           05  FILLER PIC X(11) VALUE '  SITE ID'.
+           05  FILLER PIC X(27) VALUE 'STATION'.
+           05  FILLER PIC X(11) VALUE 'DATE'.
+           05  FILLER PIC X(9)  VALUE '      CFS'.
+           05  FILLER PIC X(9)  VALUE '      P10'.
+           05  FILLER PIC X(9)  VALUE '      P25'.
+           05  FILLER PIC X(9)  VALUE '   MEDIAN'.
+           05  FILLER PIC X(9)  VALUE '      P75'.
+           05  FILLER PIC X(9)  VALUE '      P90'.
+           05  FILLER PIC X(9)  VALUE '    % MED'.
+           05  FILLER PIC X(20) VALUE '  CLASS'.
 
-       01  WS-HEADER-2.
-           05  FILLER PIC X(45) VALUE SPACES.
-           05  FILLER PIC X(42) VALUE
-               'SIERRA NEVADA WATERSHED ANALYSIS SYSTEM'.
-           05  FILLER PIC X(45) VALUE SPACES.
+       01  WS-S1-LINE.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L1-ID                    PIC X(8).
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-NAME                  PIC X(26).
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-DATE                  PIC X(10).
+           05  L1-FLAG                  PIC X.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-CFS                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-P10                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-P25                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-P50                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-P75                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-P90                   PIC Z(4)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L1-PCT                   PIC X(8).
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L1-CLASS                 PIC X(17).
 
-       01  WS-HEADER-3.
-           05  FILLER PIC X(44) VALUE SPACES.
-           05  FILLER PIC X(44) VALUE
-               'USGS STREAMFLOW DATA PROCESSING REPORT V2.0'.
-           05  FILLER PIC X(44) VALUE SPACES.
+       01  WS-S2-HEAD.
+           05  FILLER PIC X(12) VALUE '  SITE ID'.
+           05  FILLER PIC X(27) VALUE 'STATION'.
+           05  FILLER PIC X(6)  VALUE 'DAYS'.
+           05  FILLER PIC X(11) VALUE '  MEAN CFS'.
+           05  FILLER PIC X(11) VALUE '   MIN CFS'.
+           05  FILLER PIC X(11) VALUE '   MAX CFS'.
+           05  FILLER PIC X(9)  VALUE ' % NORMAL'.
+           05  FILLER PIC X(9)  VALUE ' DAYS<P10'.
+           05  FILLER PIC X(9)  VALUE ' DAYS>P90'.
+           05  FILLER PIC X(20) VALUE '  7-DAY TREND'.
 
-       01  WS-HEADER-DATE.
-           05  FILLER           PIC X(53) VALUE SPACES.
-           05  FILLER           PIC X(16) VALUE 'PROCESSING DATE:'.
-           05  WS-HD-YEAR       PIC 9(4).
-           05  FILLER           PIC X VALUE '-'.
-           05  WS-HD-MONTH      PIC 99.
-           05  FILLER           PIC X VALUE '-'.
-           05  WS-HD-DAY        PIC 99.
-           05  FILLER           PIC X(52) VALUE SPACES.
+       01  WS-S2-LINE.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L2-ID                    PIC X(8).
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L2-NAME                  PIC X(26).
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L2-DAYS                  PIC ZZZ9.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L2-MEAN                  PIC Z(6)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L2-MIN                   PIC Z(6)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L2-MAX                   PIC Z(6)9.99.
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L2-PCT                   PIC X(9).
+           05  FILLER                   PIC X(7) VALUE SPACES.
+           05  L2-LOW                   PIC Z9.
+           05  FILLER                   PIC X(7) VALUE SPACES.
+           05  L2-HIGH                  PIC Z9.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L2-TREND                 PIC X(7).
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L2-TPCT                  PIC X(9).
 
-      *--- SECTION I COLUMN HEADERS ---
-       01  WS-S1-COL.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(15) VALUE 'SITE ID'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(30) VALUE 'STATION NAME'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(7)  VALUE 'RECORDS'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE 'MEAN (CFS)'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE ' MIN (CFS)'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE ' MAX (CFS)'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(8)  VALUE '% NORMAL'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE 'TREND'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(7)  VALUE 'ALERTS'.
+       01  WS-S3-HEAD.
+           05  FILLER PIC X(14) VALUE '  BASIN'.
+           05  FILLER PIC X(8)  VALUE 'GAGES'.
+           05  FILLER PIC X(28) VALUE 'LOWEST GAGE (BASIN OUTFLOW)'.
+           05  FILLER PIC X(9)  VALUE '      CFS'.
+           05  FILLER PIC X(19) VALUE '  CLASS'.
+           05  FILLER PIC X(11) VALUE ' MUCH BELOW'.
+           05  FILLER PIC X(7)  VALUE '  BELOW'.
+           05  FILLER PIC X(7)  VALUE ' NORMAL'.
+           05  FILLER PIC X(7)  VALUE '  ABOVE'.
+           05  FILLER PIC X(11) VALUE ' MUCH ABOVE'.
 
-       01  WS-DETAIL-LINE.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  DL-SITE-ID           PIC X(15).
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  DL-SITE-NAME         PIC X(30).
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  DL-RECORDS           PIC Z(4)9.
-           05  FILLER               PIC X(4)  VALUE SPACES.
-           05  DL-MEAN              PIC Z(5)9.99.
-           05  FILLER               PIC X(3)  VALUE SPACES.
-           05  DL-MIN               PIC Z(5)9.99.
-           05  FILLER               PIC X(3)  VALUE SPACES.
-           05  DL-MAX               PIC Z(5)9.99.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  DL-PCT-NORMAL        PIC ZZZ9.99.
-           05  FILLER               PIC X VALUE '%'.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  DL-TREND             PIC X(10).
-           05  FILLER               PIC X(3)  VALUE SPACES.
-           05  DL-ALERTS            PIC Z(3)9.
+       01  WS-S3-LINE.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L3-BASIN                 PIC X(12).
+           05  FILLER                   PIC X VALUE SPACE.
+           05  L3-GAGES                 PIC Z9.
+           05  FILLER                   PIC X(5) VALUE SPACES.
+           05  L3-OUTLET                PIC X(26).
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L3-CFS                   PIC Z(5)9.99.
+           05  FILLER                   PIC XX VALUE SPACES.
+           05  L3-CLASS                 PIC X(17).
+           05  FILLER                   PIC X(9) VALUE SPACES.
+           05  L3-C1                    PIC Z9.
+           05  FILLER                   PIC X(5) VALUE SPACES.
+           05  L3-C2                    PIC Z9.
+           05  FILLER                   PIC X(5) VALUE SPACES.
+           05  L3-C3                    PIC Z9.
+           05  FILLER                   PIC X(5) VALUE SPACES.
+           05  L3-C4                    PIC Z9.
+           05  FILLER                   PIC X(9) VALUE SPACES.
+           05  L3-C5                    PIC Z9.
 
-      *--- SECTION II (ALERTS) ---
-       01  WS-ALERT-COL.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(15) VALUE 'SITE ID'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(30) VALUE 'STATION NAME'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE 'MEAN (CFS)'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(10) VALUE 'MEDIAN CFS'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(8)  VALUE '% NORMAL'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(15) VALUE 'ALERT STATUS'.
-
-       01  WS-ALERT-LINE.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  AL-SITE-ID           PIC X(15).
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  AL-SITE-NAME         PIC X(30).
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  AL-MEAN              PIC Z(5)9.99.
-           05  FILLER               PIC X(3)  VALUE SPACES.
-           05  AL-MEDIAN            PIC Z(5)9.99.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  AL-PCT-NORMAL        PIC ZZZ9.99.
-           05  FILLER               PIC X VALUE '%'.
-           05  FILLER               PIC X(3)  VALUE SPACES.
-           05  AL-STATUS            PIC X(18).
-
-      *--- SECTION III (BASIN ROLL-UP) ---
-       01  WS-BASIN-COL.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(20) VALUE 'WATERSHED BASIN'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(8)  VALUE 'STATIONS'.
-           05  FILLER PIC X(2)  VALUE SPACES.
-           05  FILLER PIC X(15) VALUE 'TOTAL MEAN CFS'.
-
-       01  WS-BASIN-LINE.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  BL-NAME              PIC X(20).
-           05  FILLER               PIC X(4)  VALUE SPACES.
-           05  BL-STATIONS          PIC Z9.
-           05  FILLER               PIC X(8)  VALUE SPACES.
-           05  BL-TOTAL             PIC Z(7)9.99.
-
-      *--- SECTION IV (SUMMARY) ---
-       01  WS-SUMMARY-LINE.
-           05  FILLER               PIC X(2)  VALUE SPACES.
-           05  SL-LABEL             PIC X(32).
-           05  SL-VALUE             PIC Z(5)9.
+       01  WS-SUM-LINE.
+           05  FILLER                   PIC X(4) VALUE SPACES.
+           05  SL-LABEL                 PIC X(34).
+           05  SL-VALUE                 PIC Z(5)9.
 
        PROCEDURE DIVISION.
 
        0000-MAIN.
            PERFORM 1000-INITIALIZE
-           PERFORM 2000-LOAD-BASELINES
-           PERFORM 3000-PROCESS-STREAMFLOW
-           PERFORM 3500-APPLY-BASELINES
-           PERFORM 4000-COMPUTE-STATS
-           PERFORM 5000-SORT-STATIONS
+           PERFORM 2000-LOAD-SITES
+           PERFORM 2500-LOAD-NORMALS
+           PERFORM 3000-LOAD-FLOWS
+           PERFORM 4000-ANALYZE-GAGE
+               VARYING SX FROM 1 BY 1 UNTIL SX > WS-NSITES
+           PERFORM 5000-SORT-GAGES
+           PERFORM 5500-BUILD-BASINS
            PERFORM 6000-WRITE-REPORT
+           PERFORM 7000-WRITE-RESULTS
            PERFORM 9000-TERMINATE
            STOP RUN.
 
       *================================================================*
        1000-INITIALIZE.
       *================================================================*
-           MOVE FUNCTION CURRENT-DATE(1:8) TO WS-CURRENT-DATE
-           MOVE WS-YEAR  TO WS-HD-YEAR
-           MOVE WS-MONTH TO WS-HD-MONTH
-           MOVE WS-DAY   TO WS-HD-DAY
-           DISPLAY 'SIERRA-FLOW V2.0: INITIALIZING...'
-           OPEN OUTPUT REPORT-FILE
-           IF WS-RPT-STATUS NOT = '00'
-               DISPLAY 'ERROR: CANNOT OPEN REPORT FILE'
-               STOP RUN
-           END-IF.
-
-      *================================================================*
-       2000-LOAD-BASELINES.
-      *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: LOADING BASELINES...'
-           OPEN INPUT BASELINE-FILE
-           IF WS-BL-STATUS NOT = '00'
-               DISPLAY 'WARNING: baselines.csv NOT FOUND'
-               DISPLAY 'PERCENT OF NORMAL WILL NOT BE CALCULATED'
-               EXIT PARAGRAPH
+           MOVE FUNCTION CURRENT-DATE TO WS-NOW
+           MOVE WS-NOW(1:8) TO WS-RUN-YMD
+           COMPUTE WS-RUN-INT = FUNCTION INTEGER-OF-DATE(WS-RUN-YMD)
+           STRING WS-NOW(1:4) '-' WS-NOW(5:2) '-' WS-NOW(7:2)
+               DELIMITED BY SIZE INTO WS-RUN-DATE
+           END-STRING
+           STRING WS-NOW(9:2) ':' WS-NOW(11:2) ':' WS-NOW(13:2)
+               DELIMITED BY SIZE INTO WS-RUN-TIME
+           END-STRING
+           IF WS-NOW(17:5) = '+0000' OR WS-NOW(17:5) = '-0000'
+               MOVE 'UTC' TO WS-RUN-TZ
+           ELSE
+               STRING 'UTC' WS-NOW(17:3) ':' WS-NOW(20:2)
+                   DELIMITED BY SIZE INTO WS-RUN-TZ
+               END-STRING
            END-IF
-           MOVE 'Y' TO WS-FIRST-LINE
-           PERFORM UNTIL EOF-BASELINE
-               READ BASELINE-FILE INTO BL-RECORD
-                   AT END SET EOF-BASELINE TO TRUE
-                   NOT AT END
-                       IF IS-HEADER
-                           MOVE 'N' TO WS-FIRST-LINE
-                       ELSE
-                           PERFORM 2100-PARSE-BASELINE
-                       END-IF
-               END-READ
-           END-PERFORM
-           CLOSE BASELINE-FILE
-           DISPLAY 'SIERRA-FLOW V2.0: BASELINES LOADED'.
+           INITIALIZE WS-SITE-TABLE
+           INITIALIZE WS-BASIN-TABLE
+           DISPLAY 'SFLW000I SIERRA-FLOW V3.0 STARTED ' WS-RUN-DATE
+               ' ' WS-RUN-TIME ' ' FUNCTION TRIM(WS-RUN-TZ).
 
       *================================================================*
-       2100-PARSE-BASELINE.
+       2000-LOAD-SITES.
       *================================================================*
-           MOVE BL-RECORD TO SF-RECORD
-           PERFORM 8000-CLEAR-PARSE-AREA
-           PERFORM 8100-PARSE-CSV-LINE
-               WITH TEST BEFORE
-               VARYING WS-PARSE-PTR FROM 1 BY 1
-               UNTIL WS-PARSE-PTR > FUNCTION LENGTH(
-                     FUNCTION TRIM(BL-RECORD TRAILING))
-
-           MOVE FUNCTION TRIM(WS-FIELDS(1) LEADING)
-               TO WS-BL-SITE-ID
-           MOVE FUNCTION TRIM(WS-FIELDS(2) LEADING)
-               TO WS-BL-SITE-NAME
-           MOVE FUNCTION TRIM(WS-FIELDS(3) LEADING)
-               TO WS-BL-MEDIAN-STR
-           MOVE FUNCTION TRIM(WS-FIELDS(4) LEADING)
-               TO WS-BL-LOW-STR
-           MOVE FUNCTION TRIM(WS-FIELDS(5) LEADING)
-               TO WS-BL-HIGH-STR
-
-           IF WS-BL-MEDIAN-STR NOT = SPACES
-               MOVE FUNCTION NUMVAL(WS-BL-MEDIAN-STR)
-                   TO WS-BL-MEDIAN
-           END-IF
-           IF WS-BL-LOW-STR NOT = SPACES
-               MOVE FUNCTION NUMVAL(WS-BL-LOW-STR)
-                   TO WS-BL-LOW
-           END-IF
-           IF WS-BL-HIGH-STR NOT = SPACES
-               MOVE FUNCTION NUMVAL(WS-BL-HIGH-STR)
-                   TO WS-BL-HIGH
-           END-IF
-
-      *--- Store in baseline cache table for later application ---
-           ADD 1 TO WS-BL-COUNT
-           MOVE WS-BL-SITE-ID TO BLC-SITE-ID(WS-BL-COUNT)
-           MOVE WS-BL-MEDIAN  TO BLC-MEDIAN(WS-BL-COUNT)
-           MOVE WS-BL-LOW     TO BLC-LOW(WS-BL-COUNT)
-           MOVE WS-BL-HIGH    TO BLC-HIGH(WS-BL-COUNT).
-
-      *================================================================*
-       3000-PROCESS-STREAMFLOW.
-      *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: PROCESSING STREAMFLOW...'
-           OPEN INPUT STREAMFLOW-FILE
-           IF WS-SF-STATUS NOT = '00'
-               DISPLAY 'ERROR: CANNOT OPEN streamflow.csv'
+           OPEN INPUT SITES-FILE
+           IF WS-FS-SITES NOT = '00'
+               DISPLAY 'SFLW901E CANNOT OPEN sites.csv'
+               MOVE 12 TO RETURN-CODE
                STOP RUN
            END-IF
-           MOVE 'Y' TO WS-FIRST-LINE
-           PERFORM UNTIL EOF-STREAMFLOW
-               READ STREAMFLOW-FILE INTO SF-RECORD
-                   AT END SET EOF-STREAMFLOW TO TRUE
-                   NOT AT END
-                       IF IS-HEADER
-                           MOVE 'N' TO WS-FIRST-LINE
-                       ELSE
-                           PERFORM 3100-PROCESS-RECORD
-                       END-IF
+           MOVE 'N' TO WS-EOF
+           MOVE 'Y' TO WS-FIRST
+           PERFORM UNTIL AT-EOF
+               READ SITES-FILE
+                   AT END SET AT-EOF TO TRUE
+                   NOT AT END PERFORM 2100-ONE-SITE
                END-READ
            END-PERFORM
-           CLOSE STREAMFLOW-FILE
-           DISPLAY 'SIERRA-FLOW V2.0: READ ' WS-TOTAL-RECORDS
-               ' DATA RECORDS'.
+           CLOSE SITES-FILE
+           MOVE WS-NSITES TO WS-ED-CNT
+           DISPLAY 'SFLW001I GAGES LOADED ..............' WS-ED-CNT.
 
-      *================================================================*
-       3100-PROCESS-RECORD.
-      *================================================================*
-           PERFORM 8000-CLEAR-PARSE-AREA
-           PERFORM 8100-PARSE-CSV-LINE
-               WITH TEST BEFORE
-               VARYING WS-PARSE-PTR FROM 1 BY 1
-               UNTIL WS-PARSE-PTR > FUNCTION LENGTH(
-                     FUNCTION TRIM(SF-RECORD TRAILING))
-
-           MOVE FUNCTION TRIM(WS-FIELDS(1) LEADING) TO WS-SITE-ID
-           MOVE FUNCTION TRIM(WS-FIELDS(2) LEADING) TO WS-SITE-NAME
-           MOVE FUNCTION TRIM(WS-FIELDS(3) LEADING) TO WS-MEAS-DATE
-           MOVE FUNCTION TRIM(WS-FIELDS(4) LEADING) TO WS-DISCHARGE-STR
-           MOVE FUNCTION TRIM(WS-FIELDS(5) LEADING) TO WS-GAGE-HT-STR
-
-           MOVE 'N' TO WS-ALERT-FLAG
-           IF WS-SITE-ID = SPACES OR WS-DISCHARGE-STR = SPACES
-               ADD 1 TO WS-SKIPPED-RECORDS
+       2100-ONE-SITE.
+           IF WS-FIRST = 'Y'
+               MOVE 'N' TO WS-FIRST
                EXIT PARAGRAPH
            END-IF
-           MOVE FUNCTION NUMVAL(WS-DISCHARGE-STR) TO WS-DISCHARGE
-
-           PERFORM 3200-ACCUMULATE-STATION.
+           IF WS-NSITES >= 12
+               EXIT PARAGRAPH
+           END-IF
+           PERFORM 8000-SPLIT-SITES
+           ADD 1 TO WS-NSITES
+           SET SX TO WS-NSITES
+           MOVE WS-FLD(1)  TO S-ID(SX)
+           MOVE WS-FLD(2)  TO S-NAME(SX)
+           MOVE WS-FLD(3)  TO S-BASIN(SX)
+           MOVE FUNCTION NUMVAL(WS-FLD(4)) TO S-BASIN-SEQ(SX)
+           MOVE FUNCTION NUMVAL(WS-FLD(5)) TO S-SEQ(SX)
+           MOVE WS-FLD(7)  TO S-REG(SX).
 
       *================================================================*
-       3200-ACCUMULATE-STATION.
+       2500-LOAD-NORMALS.
       *================================================================*
-           MOVE 'N' TO WS-FOUND-STATION
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-                   OR WS-FOUND-STATION = 'Y'
-               IF ST-SITE-ID(STN-IDX) = WS-SITE-ID
-                   MOVE 'Y' TO WS-FOUND-STATION
-                   MOVE STN-IDX TO WS-CURRENT-STN-IDX
+           OPEN INPUT NORMALS-FILE
+           IF WS-FS-NORM NOT = '00'
+               DISPLAY 'SFLW902E CANNOT OPEN normals.csv'
+               DISPLAY 'SFLW902E RUN NORMALS FIRST'
+               MOVE 12 TO RETURN-CODE
+               STOP RUN
+           END-IF
+           MOVE 'N' TO WS-EOF
+           MOVE 'Y' TO WS-FIRST
+           PERFORM UNTIL AT-EOF
+               READ NORMALS-FILE
+                   AT END SET AT-EOF TO TRUE
+                   NOT AT END PERFORM 2600-ONE-NORMAL
+               END-READ
+           END-PERFORM
+           CLOSE NORMALS-FILE
+           MOVE WS-NORMS-READ TO WS-ED-CNT
+           DISPLAY 'SFLW002I DAILY NORMALS LOADED ......' WS-ED-CNT.
+
+       2600-ONE-NORMAL.
+           IF WS-FIRST = 'Y'
+               MOVE 'N' TO WS-FIRST
+               EXIT PARAGRAPH
+           END-IF
+           MOVE SPACES TO WS-FIELDS
+           UNSTRING NORMALS-REC DELIMITED BY ','
+               INTO WS-FLD(1) WS-FLD(2) WS-FLD(3) WS-FLD(4)
+                    WS-FLD(5) WS-FLD(6) WS-FLD(7) WS-FLD(8)
+                    WS-FLD(9) WS-FLD(10) WS-FLD(11)
+           END-UNSTRING
+           PERFORM 8100-FIND-SITE
+           IF WS-FOUND = 0
+               EXIT PARAGRAPH
+           END-IF
+           MOVE FUNCTION NUMVAL(WS-FLD(2)) TO WS-SLOT
+           IF WS-SLOT < 1 OR WS-SLOT > 366
+               EXIT PARAGRAPH
+           END-IF
+           SET SX TO WS-FOUND
+           MOVE FUNCTION NUMVAL(WS-FLD(6))  TO N-YEARS(SX, WS-SLOT)
+           MOVE FUNCTION NUMVAL(WS-FLD(7))  TO N-P10(SX, WS-SLOT)
+           MOVE FUNCTION NUMVAL(WS-FLD(8))  TO N-P25(SX, WS-SLOT)
+           MOVE FUNCTION NUMVAL(WS-FLD(9))  TO N-P50(SX, WS-SLOT)
+           MOVE FUNCTION NUMVAL(WS-FLD(10)) TO N-P75(SX, WS-SLOT)
+           MOVE FUNCTION NUMVAL(WS-FLD(11)) TO N-P90(SX, WS-SLOT)
+           ADD 1 TO WS-NORMS-READ.
+
+      *================================================================*
+       3000-LOAD-FLOWS.
+      *================================================================*
+           OPEN INPUT FLOW-FILE
+           IF WS-FS-FLOW NOT = '00'
+               DISPLAY 'SFLW903E CANNOT OPEN streamflow.csv'
+               MOVE 12 TO RETURN-CODE
+               STOP RUN
+           END-IF
+           MOVE 'N' TO WS-EOF
+           MOVE 'Y' TO WS-FIRST
+           PERFORM UNTIL AT-EOF
+               READ FLOW-FILE
+                   AT END SET AT-EOF TO TRUE
+                   NOT AT END PERFORM 3100-ONE-FLOW
+               END-READ
+           END-PERFORM
+           CLOSE FLOW-FILE
+           MOVE WS-FLOWS-READ TO WS-ED-CNT
+           DISPLAY 'SFLW003I DAILY MEANS LOADED ........' WS-ED-CNT
+           MOVE WS-SKIPPED TO WS-ED-CNT
+           DISPLAY 'SFLW004I RECORDS SKIPPED ...........' WS-ED-CNT.
+
+       3100-ONE-FLOW.
+           IF WS-FIRST = 'Y'
+               MOVE 'N' TO WS-FIRST
+               EXIT PARAGRAPH
+           END-IF
+           MOVE SPACES TO WS-FIELDS
+           UNSTRING FLOW-REC DELIMITED BY ','
+               INTO WS-FLD(1) WS-FLD(2) WS-FLD(3) WS-FLD(4)
+           END-UNSTRING
+           PERFORM 8100-FIND-SITE
+           IF WS-FOUND = 0 OR WS-FLD(3) = SPACES
+                  OR WS-FLD(2)(5:1) NOT = '-'
+               ADD 1 TO WS-SKIPPED
+               EXIT PARAGRAPH
+           END-IF
+           SET SX TO WS-FOUND
+           IF S-NDAYS(SX) >= 70
+               ADD 1 TO WS-SKIPPED
+               EXIT PARAGRAPH
+           END-IF
+           ADD 1 TO S-NDAYS(SX)
+           MOVE S-NDAYS(SX) TO WS-I
+           MOVE WS-FLD(2)(1:10) TO D-DATE(SX, WS-I)
+           STRING WS-FLD(2)(1:4) WS-FLD(2)(6:2) WS-FLD(2)(9:2)
+               DELIMITED BY SIZE INTO WS-YMD-X
+           END-STRING
+           COMPUTE D-INT(SX, WS-I) =
+               FUNCTION INTEGER-OF-DATE(WS-YMD)
+           MOVE WS-FLD(2)(6:2) TO WS-MONTH
+           MOVE WS-FLD(2)(9:2) TO WS-DAYN
+           COMPUTE D-SLOT(SX, WS-I) = WS-CUM(WS-MONTH) + WS-DAYN
+           COMPUTE D-FLOW(SX, WS-I) = FUNCTION NUMVAL(WS-FLD(3))
+           ADD 1 TO WS-FLOWS-READ.
+
+      *================================================================*
+      * ONE GAGE: TODAY VS NORMAL, 30 DAYS VS NORMAL, 7-DAY TREND      *
+      *================================================================*
+       4000-ANALYZE-GAGE.
+           IF S-NDAYS(SX) = 0
+               MOVE 'NO DATA'  TO R-CLASS(SX)
+               MOVE 'Y'        TO R-STALE(SX)
+               MOVE 'N'        TO R-HAS-MED(SX) R-HAS-PCT30(SX)
+                                  R-HAS-TREND(SX)
+               ADD 1 TO WS-STALE
+               MOVE 4 TO WS-RC
+               DISPLAY 'SFLW010W NO DATA FOR ' S-ID(SX)
+               EXIT PARAGRAPH
+           END-IF
+           MOVE S-NDAYS(SX) TO WS-LAST
+           MOVE D-DATE(SX, WS-LAST) TO R-LAST-DATE(SX)
+           MOVE D-SLOT(SX, WS-LAST) TO R-LAST-SLOT(SX)
+           MOVE D-FLOW(SX, WS-LAST) TO R-LAST-FLOW(SX)
+
+      *--- HOW OLD IS THE LATEST DAY? ---
+           COMPUTE R-AGE(SX) = WS-RUN-INT - D-INT(SX, WS-LAST)
+           IF R-AGE(SX) > 3
+               MOVE 'Y' TO R-STALE(SX)
+               ADD 1 TO WS-STALE
+               MOVE 4 TO WS-RC
+               DISPLAY 'SFLW011W STALE DATA FOR ' S-ID(SX)
+                   ' LAST DAY ' R-LAST-DATE(SX)
+           ELSE
+               MOVE 'N' TO R-STALE(SX)
+           END-IF
+
+      *--- LATEST DAY AGAINST THE NORMAL FOR ITS DATE ---
+           MOVE R-LAST-FLOW(SX) TO WS-FLOW
+           MOVE R-LAST-SLOT(SX) TO WS-SLOT
+           PERFORM 4100-CLASSIFY
+           MOVE WS-CLASS TO R-CLASS(SX)
+           IF N-YEARS(SX, WS-SLOT) >= 10 AND N-P50(SX, WS-SLOT) > 0
+               COMPUTE R-PCT-MED(SX) ROUNDED =
+                   WS-FLOW / N-P50(SX, WS-SLOT) * 100
+                   ON SIZE ERROR MOVE 99999.9 TO R-PCT-MED(SX)
+               END-COMPUTE
+               MOVE 'Y' TO R-HAS-MED(SX)
+           ELSE
+               MOVE 'N' TO R-HAS-MED(SX)
+           END-IF
+
+      *--- LAST 30 DAYS ---
+           IF WS-LAST > 30
+               COMPUTE WS-FROM = WS-LAST - 29
+           ELSE
+               MOVE 1 TO WS-FROM
+           END-IF
+           MOVE 0 TO WS-SUM WS-SUM-MED WS-MED-DAYS
+           MOVE 0 TO R-LOW-DAYS(SX) R-HIGH-DAYS(SX) R-N30(SX)
+           MOVE 9999999.99 TO R-MIN30(SX)
+           MOVE 0 TO R-MAX30(SX)
+           PERFORM VARYING WS-I FROM WS-FROM BY 1 UNTIL WS-I > WS-LAST
+               MOVE D-FLOW(SX, WS-I) TO WS-FLOW
+               MOVE D-SLOT(SX, WS-I) TO WS-SLOT
+               ADD 1 TO R-N30(SX)
+               ADD WS-FLOW TO WS-SUM
+               IF WS-FLOW < R-MIN30(SX)
+                   MOVE WS-FLOW TO R-MIN30(SX)
+               END-IF
+               IF WS-FLOW > R-MAX30(SX)
+                   MOVE WS-FLOW TO R-MAX30(SX)
+               END-IF
+               IF N-YEARS(SX, WS-SLOT) >= 10
+                   ADD N-P50(SX, WS-SLOT) TO WS-SUM-MED
+                   ADD 1 TO WS-MED-DAYS
+                   IF WS-FLOW < N-P10(SX, WS-SLOT)
+                       ADD 1 TO R-LOW-DAYS(SX)
+                   END-IF
+                   IF WS-FLOW > N-P90(SX, WS-SLOT)
+                       ADD 1 TO R-HIGH-DAYS(SX)
+                   END-IF
                END-IF
            END-PERFORM
-
-           IF WS-FOUND-STATION = 'N'
-               ADD 1 TO WS-STATION-COUNT
-               MOVE WS-STATION-COUNT TO WS-CURRENT-STN-IDX
-               SET STN-IDX TO WS-CURRENT-STN-IDX
-               MOVE WS-SITE-ID   TO ST-SITE-ID(STN-IDX)
-               MOVE WS-SITE-NAME TO ST-SITE-NAME(STN-IDX)
-               PERFORM 3210-ASSIGN-BASIN
-               DISPLAY '  REGISTERED: ' WS-SITE-ID
-                   ' - ' WS-SITE-NAME
+           COMPUTE R-MEAN30(SX) ROUNDED = WS-SUM / R-N30(SX)
+           IF WS-MED-DAYS = R-N30(SX) AND WS-SUM-MED > 0
+               COMPUTE R-PCT30(SX) ROUNDED = WS-SUM / WS-SUM-MED * 100
+                   ON SIZE ERROR MOVE 99999.9 TO R-PCT30(SX)
+               END-COMPUTE
+               MOVE 'Y' TO R-HAS-PCT30(SX)
+           ELSE
+               MOVE 'N' TO R-HAS-PCT30(SX)
            END-IF
 
-           SET STN-IDX TO WS-CURRENT-STN-IDX
-           ADD 1            TO ST-RECORD-COUNT(STN-IDX)
-           ADD WS-DISCHARGE TO ST-SUM(STN-IDX)
-           ADD 1            TO WS-TOTAL-RECORDS
-
-           IF WS-DISCHARGE < ST-MIN(STN-IDX)
-               MOVE WS-DISCHARGE TO ST-MIN(STN-IDX)
-           END-IF
-           IF WS-DISCHARGE > ST-MAX(STN-IDX)
-               MOVE WS-DISCHARGE TO ST-MAX(STN-IDX)
-           END-IF
-
-      *--- Trend: accumulate day-over-day delta ---
-           IF ST-PREV-VALUE(STN-IDX) > ZEROS
-               SUBTRACT ST-PREV-VALUE(STN-IDX) FROM WS-DISCHARGE
-                   GIVING WS-TREND-DIFF
-               ADD WS-TREND-DIFF TO ST-TREND-SUM(STN-IDX)
-               ADD 1 TO ST-TREND-COUNT(STN-IDX)
-           END-IF
-           MOVE WS-DISCHARGE  TO ST-PREV-VALUE(STN-IDX)
-           MOVE WS-MEAS-DATE  TO ST-LAST-DATE(STN-IDX)
-           MOVE WS-DISCHARGE  TO ST-LAST-VALUE(STN-IDX)
-
-           IF WS-DISCHARGE < ST-LOW-THRESH(STN-IDX)
-               ADD 1 TO ST-ALERT-COUNT(STN-IDX)
-               ADD 1 TO WS-TOTAL-ALERTS
-           ELSE IF WS-DISCHARGE > ST-HIGH-THRESH(STN-IDX)
-               ADD 1 TO ST-ALERT-COUNT(STN-IDX)
-               ADD 1 TO WS-TOTAL-ALERTS
+      *--- LAST 7 DAYS AGAINST THE 7 BEFORE ---
+           MOVE 'N' TO R-HAS-TREND(SX)
+           MOVE 'STEADY' TO R-TREND(SX)
+           MOVE 0 TO R-TREND-PCT(SX)
+           IF WS-LAST >= 14
+               MOVE 0 TO WS-SUM
+               COMPUTE WS-FROM = WS-LAST - 6
+               PERFORM VARYING WS-I FROM WS-FROM BY 1
+                       UNTIL WS-I > WS-LAST
+                   ADD D-FLOW(SX, WS-I) TO WS-SUM
+               END-PERFORM
+               COMPUTE WS-MEAN-A ROUNDED = WS-SUM / 7
+               MOVE 0 TO WS-SUM
+               COMPUTE WS-FROM = WS-LAST - 13
+               COMPUTE WS-K = WS-LAST - 7
+               PERFORM VARYING WS-I FROM WS-FROM BY 1
+                       UNTIL WS-I > WS-K
+                   ADD D-FLOW(SX, WS-I) TO WS-SUM
+               END-PERFORM
+               COMPUTE WS-MEAN-B ROUNDED = WS-SUM / 7
+               MOVE 'Y' TO R-HAS-TREND(SX)
+               IF WS-MEAN-B > 0
+                   COMPUTE WS-CHANGE = WS-MEAN-A - WS-MEAN-B
+                   COMPUTE R-TREND-PCT(SX) ROUNDED =
+                       WS-CHANGE / WS-MEAN-B * 100
+                       ON SIZE ERROR MOVE 9999.9 TO R-TREND-PCT(SX)
+                   END-COMPUTE
+               END-IF
+               EVALUATE TRUE
+                   WHEN WS-MEAN-A < 1 AND WS-MEAN-B < 1
+                       MOVE 'STEADY'  TO R-TREND(SX)
+                   WHEN WS-MEAN-B = 0
+                       MOVE 'RISING'  TO R-TREND(SX)
+                   WHEN R-TREND-PCT(SX) >= 10
+                       MOVE 'RISING'  TO R-TREND(SX)
+                   WHEN R-TREND-PCT(SX) <= -10
+                       MOVE 'FALLING' TO R-TREND(SX)
+                   WHEN OTHER
+                       MOVE 'STEADY'  TO R-TREND(SX)
+               END-EVALUATE
            END-IF.
 
       *================================================================*
-       3210-ASSIGN-BASIN.
+      * WATERWATCH CLASS OF WS-FLOW FOR DAY WS-SLOT OF GAGE SX         *
       *================================================================*
-           EVALUATE WS-SITE-ID
-               WHEN '11276500'
-                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
-               WHEN '11274790'
-                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
-               WHEN '11289650'
-                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
-               WHEN '11290000'
-                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
-               WHEN '11266500'
-                   MOVE 'MERCED'         TO ST-BASIN(STN-IDX)
-               WHEN '11264500'
-                   MOVE 'MERCED'         TO ST-BASIN(STN-IDX)
-               WHEN '11303000'
-                   MOVE 'STANISLAUS'     TO ST-BASIN(STN-IDX)
-               WHEN '11284400'
-                   MOVE 'TUOLUMNE'       TO ST-BASIN(STN-IDX)
+       4100-CLASSIFY.
+           EVALUATE TRUE
+               WHEN N-YEARS(SX, WS-SLOT) < 10
+                   MOVE 'NO NORMAL'         TO WS-CLASS
+                   MOVE 0 TO WS-CLASS-I
+               WHEN WS-FLOW < N-P10(SX, WS-SLOT)
+                   MOVE 'MUCH BELOW NORMAL' TO WS-CLASS
+                   MOVE 1 TO WS-CLASS-I
+               WHEN WS-FLOW < N-P25(SX, WS-SLOT)
+                   MOVE 'BELOW NORMAL'      TO WS-CLASS
+                   MOVE 2 TO WS-CLASS-I
+               WHEN WS-FLOW > N-P90(SX, WS-SLOT)
+                   MOVE 'MUCH ABOVE NORMAL' TO WS-CLASS
+                   MOVE 5 TO WS-CLASS-I
+               WHEN WS-FLOW > N-P75(SX, WS-SLOT)
+                   MOVE 'ABOVE NORMAL'      TO WS-CLASS
+                   MOVE 4 TO WS-CLASS-I
                WHEN OTHER
-                   MOVE 'OTHER'          TO ST-BASIN(STN-IDX)
+                   MOVE 'NORMAL'            TO WS-CLASS
+                   MOVE 3 TO WS-CLASS-I
            END-EVALUATE.
 
       *================================================================*
-       3500-APPLY-BASELINES.
+      * SORT BY BASIN, THEN UPSTREAM TO DOWNSTREAM. THE SORT RECORD    *
+      * CARRIES THE TABLE INDEX, SO EVERY NUMBER STAYS WITH ITS GAGE.  *
       *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: APPLYING BASELINES...'
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-               PERFORM VARYING BLC-IDX FROM 1 BY 1
-                   UNTIL BLC-IDX > WS-BL-COUNT
-                   IF BLC-SITE-ID(BLC-IDX) = ST-SITE-ID(STN-IDX)
-                       MOVE BLC-MEDIAN(BLC-IDX)
-                           TO ST-MEDIAN(STN-IDX)
-                       MOVE BLC-LOW(BLC-IDX)
-                           TO ST-LOW-THRESH(STN-IDX)
-                       MOVE BLC-HIGH(BLC-IDX)
-                           TO ST-HIGH-THRESH(STN-IDX)
-                   END-IF
-               END-PERFORM
-           END-PERFORM.
-
-      *================================================================*
-       4000-COMPUTE-STATS.
-      *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: COMPUTING STATISTICS...'
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-
-               IF ST-RECORD-COUNT(STN-IDX) > 0
-                   COMPUTE ST-MEAN(STN-IDX) ROUNDED =
-                       ST-SUM(STN-IDX) / ST-RECORD-COUNT(STN-IDX)
-               END-IF
-
-      *--- Percent of normal ---
-               IF ST-MEDIAN(STN-IDX) > ZEROS
-                   COMPUTE ST-PCT-NORMAL(STN-IDX) ROUNDED =
-                       (ST-MEAN(STN-IDX) / ST-MEDIAN(STN-IDX)) * 100
-               END-IF
-
-      *--- Trend determination ---
-               IF ST-TREND-COUNT(STN-IDX) > 0
-                   COMPUTE WS-TEMP-COMPUTE =
-                       ST-TREND-SUM(STN-IDX) / ST-TREND-COUNT(STN-IDX)
-                   EVALUATE TRUE
-                       WHEN WS-TEMP-COMPUTE > 50
-                           MOVE '▲ RISING  ' TO ST-TREND(STN-IDX)
-                       WHEN WS-TEMP-COMPUTE < -50
-                           MOVE '▼ FALLING ' TO ST-TREND(STN-IDX)
-                       WHEN OTHER
-                           MOVE '─ STABLE  ' TO ST-TREND(STN-IDX)
-                   END-EVALUATE
-               END-IF
-
-           END-PERFORM
-           PERFORM 4100-COMPUTE-BASIN-TOTALS.
-
-      *================================================================*
-       4100-COMPUTE-BASIN-TOTALS.
-      *================================================================*
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-
-               MOVE 'N' TO WS-FOUND-STATION
-               PERFORM VARYING BSN-IDX FROM 1 BY 1
-                   UNTIL BSN-IDX > WS-BASIN-COUNT
-                       OR WS-FOUND-STATION = 'Y'
-                   IF BS-NAME(BSN-IDX) = ST-BASIN(STN-IDX)
-                       MOVE 'Y' TO WS-FOUND-STATION
-                   END-IF
-               END-PERFORM
-
-               IF WS-FOUND-STATION = 'N'
-                   ADD 1 TO WS-BASIN-COUNT
-                   SET BSN-IDX TO WS-BASIN-COUNT
-                   MOVE ST-BASIN(STN-IDX) TO BS-NAME(BSN-IDX)
-               END-IF
-
-      *--- BSN-IDX now points to correct basin either way ---
-               PERFORM VARYING BSN-IDX FROM 1 BY 1
-                   UNTIL BSN-IDX > WS-BASIN-COUNT
-                   IF BS-NAME(BSN-IDX) = ST-BASIN(STN-IDX)
-                       ADD ST-MEAN(STN-IDX) TO BS-TOTAL(BSN-IDX)
-                       ADD 1 TO BS-STATION-COUNT(BSN-IDX)
-                   END-IF
-               END-PERFORM
-
-           END-PERFORM.
-
-      *================================================================*
-       5000-SORT-STATIONS.
-      *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: SORTING BY MEAN DISCHARGE...'
+       5000-SORT-GAGES.
            SORT SORT-FILE
-               DESCENDING KEY SR-MEAN
-               INPUT  PROCEDURE 5100-SORT-INPUT
-               OUTPUT PROCEDURE 5200-SORT-OUTPUT.
+               ON ASCENDING KEY SR-BASIN-SEQ SR-SEQ
+               INPUT PROCEDURE 5100-SORT-IN
+               OUTPUT PROCEDURE 5200-SORT-OUT.
 
-      *================================================================*
-       5100-SORT-INPUT.
-      *================================================================*
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-               MOVE ST-MEAN(STN-IDX)         TO SR-MEAN
-               MOVE ST-SITE-ID(STN-IDX)      TO SR-SITE-ID
-               MOVE ST-SITE-NAME(STN-IDX)    TO SR-SITE-NAME
-               MOVE ST-RECORD-COUNT(STN-IDX) TO SR-RECORDS
-               MOVE ST-MIN(STN-IDX)          TO SR-MIN
-               MOVE ST-MAX(STN-IDX)          TO SR-MAX
-               MOVE ST-ALERT-COUNT(STN-IDX)  TO SR-ALERTS
-               MOVE ST-PCT-NORMAL(STN-IDX)   TO SR-PCT-NORMAL
-               MOVE ST-TREND(STN-IDX)        TO SR-TREND
-               MOVE ST-LAST-DATE(STN-IDX)    TO SR-LAST-DATE
-               MOVE ST-LAST-VALUE(STN-IDX)   TO SR-LAST-VALUE
-               MOVE ST-BASIN(STN-IDX)        TO SR-BASIN
-               RELEASE SORT-RECORD
+       5100-SORT-IN.
+           PERFORM VARYING SX FROM 1 BY 1 UNTIL SX > WS-NSITES
+               MOVE S-BASIN-SEQ(SX) TO SR-BASIN-SEQ
+               MOVE S-SEQ(SX)       TO SR-SEQ
+               SET SR-IDX           TO SX
+               RELEASE SORT-REC
+           END-PERFORM.
+
+       5200-SORT-OUT.
+           MOVE 'N' TO WS-EOF
+           PERFORM UNTIL AT-EOF
+               RETURN SORT-FILE
+                   AT END SET AT-EOF TO TRUE
+                   NOT AT END
+                       ADD 1 TO WS-NORDER
+                       MOVE SR-IDX TO WS-ORDER(WS-NORDER)
+               END-RETURN
            END-PERFORM.
 
       *================================================================*
-       5200-SORT-OUTPUT.
+      * BASINS: GAGE COUNT, CLASS COUNTS, AND THE LOWEST GAGE          *
       *================================================================*
-      *--- Write sorted records back into station table in order ---
-           MOVE 0 TO WS-STATION-COUNT
-           MOVE 'N' TO WS-EOF-SF
-           PERFORM UNTIL EOF-STREAMFLOW
-               RETURN SORT-FILE INTO SORT-RECORD
-                   AT END SET EOF-STREAMFLOW TO TRUE
-                   NOT AT END
-                       ADD 1 TO WS-STATION-COUNT
-                       SET STN-IDX TO WS-STATION-COUNT
-                       MOVE SR-SITE-ID    TO ST-SITE-ID(STN-IDX)
-                       MOVE SR-SITE-NAME  TO ST-SITE-NAME(STN-IDX)
-                       MOVE SR-RECORDS    TO ST-RECORD-COUNT(STN-IDX)
-                       MOVE SR-MEAN       TO ST-MEAN(STN-IDX)
-                       MOVE SR-MIN        TO ST-MIN(STN-IDX)
-                       MOVE SR-MAX        TO ST-MAX(STN-IDX)
-                       MOVE SR-ALERTS     TO ST-ALERT-COUNT(STN-IDX)
-                       MOVE SR-PCT-NORMAL TO ST-PCT-NORMAL(STN-IDX)
-                       MOVE SR-TREND      TO ST-TREND(STN-IDX)
-                       MOVE SR-LAST-DATE  TO ST-LAST-DATE(STN-IDX)
-                       MOVE SR-LAST-VALUE TO ST-LAST-VALUE(STN-IDX)
-                       MOVE SR-BASIN      TO ST-BASIN(STN-IDX)
-               END-RETURN
+       5500-BUILD-BASINS.
+           PERFORM VARYING WS-OI FROM 1 BY 1 UNTIL WS-OI > WS-NORDER
+               SET SX TO WS-ORDER(WS-OI)
+               MOVE 0 TO WS-FOUND
+               PERFORM VARYING BX FROM 1 BY 1 UNTIL BX > WS-NBASINS
+                   IF B-NAME(BX) = S-BASIN(SX)
+                       SET WS-FOUND TO BX
+                   END-IF
+               END-PERFORM
+               IF WS-FOUND = 0
+                   ADD 1 TO WS-NBASINS
+                   MOVE WS-NBASINS TO WS-FOUND
+                   SET BX TO WS-FOUND
+                   MOVE S-BASIN(SX)     TO B-NAME(BX)
+                   MOVE S-BASIN-SEQ(SX) TO B-SEQ(BX)
+               END-IF
+               SET BX TO WS-FOUND
+               ADD 1 TO B-GAGES(BX)
+               IF S-SEQ(SX) >= B-OUTLET-SEQ(BX)
+                   MOVE S-SEQ(SX) TO B-OUTLET-SEQ(BX)
+                   SET B-OUTLET(BX) TO SX
+               END-IF
+               IF S-NDAYS(SX) > 0
+                   MOVE R-LAST-FLOW(SX) TO WS-FLOW
+                   MOVE R-LAST-SLOT(SX) TO WS-SLOT
+                   PERFORM 4100-CLASSIFY
+                   IF WS-CLASS-I > 0
+                       ADD 1 TO B-CLASS-N(BX, WS-CLASS-I)
+                   END-IF
+               END-IF
            END-PERFORM.
 
       *================================================================*
        6000-WRITE-REPORT.
       *================================================================*
-           DISPLAY 'SIERRA-FLOW V2.0: WRITING REPORT...'
-           PERFORM 6100-WRITE-BANNER
-           PERFORM 6200-WRITE-SECTION-I
-           PERFORM 6300-WRITE-SECTION-II
-           PERFORM 6400-WRITE-SECTION-III
-           PERFORM 6500-WRITE-SECTION-IV
-           PERFORM 6600-WRITE-FOOTER.
+           OPEN OUTPUT REPORT-FILE
+           IF WS-FS-RPT NOT = '00'
+               DISPLAY 'SFLW904E CANNOT OPEN streamflow-report.txt'
+               MOVE 12 TO RETURN-CODE
+               STOP RUN
+           END-IF
+           PERFORM 6100-BANNER
+           PERFORM 6200-SECTION-I
+           PERFORM 6300-SECTION-II
+           PERFORM 6400-SECTION-III
+           PERFORM 6500-SECTION-IV
+           WRITE RPT-LINE FROM WS-RULE-EQ
+           MOVE SPACES TO WS-LINE
+           MOVE 'END OF REPORT - SIERRA-FLOW V3.0' TO WS-LINE(51:32)
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-RULE-EQ
+           CLOSE REPORT-FILE.
 
-      *================================================================*
-       6100-WRITE-BANNER.
-      *================================================================*
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-HEADER-1
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-HEADER-2
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-HEADER-3
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-HEADER-DATE
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-HEADER-1
-           WRITE RPT-LINE FROM WS-BLANK-LINE.
+       6100-BANNER.
+           WRITE RPT-LINE FROM WS-RULE-EQ
+           WRITE RPT-LINE FROM WS-BLANK
+           MOVE SPACES TO WS-LINE
+           MOVE 'SIERRA NEVADA WATERSHED ANALYSIS SYSTEM'
+               TO WS-LINE(47:39)
+           WRITE RPT-LINE FROM WS-LINE
+           MOVE SPACES TO WS-LINE
+           MOVE 'USGS STREAMFLOW DATA PROCESSING REPORT  V3.0'
+               TO WS-LINE(45:44)
+           WRITE RPT-LINE FROM WS-LINE
+           MOVE SPACES TO WS-LINE
+           STRING 'RUN ' WS-RUN-DATE ' ' WS-RUN-TIME ' '
+               FUNCTION TRIM(WS-RUN-TZ)
+               DELIMITED BY SIZE INTO WS-LINE(51:40)
+           END-STRING
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-BLANK
+           WRITE RPT-LINE FROM WS-RULE-EQ
+           WRITE RPT-LINE FROM WS-BLANK.
 
-      *================================================================*
-       6200-WRITE-SECTION-I.
-      *================================================================*
-           MOVE 'SECTION I: STATION STATISTICS  (SORTED BY MEAN CFS)'
-               TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-S1-COL
-           MOVE ALL '-' TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-               MOVE SPACES TO WS-DETAIL-LINE
-               MOVE ST-SITE-ID(STN-IDX)        TO DL-SITE-ID
-               MOVE ST-SITE-NAME(STN-IDX)(1:30) TO DL-SITE-NAME
-               MOVE ST-RECORD-COUNT(STN-IDX)   TO DL-RECORDS
-               MOVE ST-MEAN(STN-IDX)           TO DL-MEAN
-               MOVE ST-MIN(STN-IDX)            TO DL-MIN
-               MOVE ST-MAX(STN-IDX)            TO DL-MAX
-               MOVE ST-PCT-NORMAL(STN-IDX)     TO DL-PCT-NORMAL
-               MOVE ST-TREND(STN-IDX)          TO DL-TREND
-               MOVE ST-ALERT-COUNT(STN-IDX)    TO DL-ALERTS
-               WRITE RPT-LINE FROM WS-DETAIL-LINE
-           END-PERFORM
-           WRITE RPT-LINE FROM WS-BLANK-LINE.
-
-      *================================================================*
-       6300-WRITE-SECTION-II.
-      *================================================================*
-           MOVE 'SECTION II: ALERT & PERCENT-OF-NORMAL ANALYSIS'
-               TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-ALERT-COL
-           MOVE ALL '-' TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-
-           PERFORM VARYING STN-IDX FROM 1 BY 1
-               UNTIL STN-IDX > WS-STATION-COUNT
-               MOVE SPACES TO WS-ALERT-LINE
-               MOVE ST-SITE-ID(STN-IDX)         TO AL-SITE-ID
-               MOVE ST-SITE-NAME(STN-IDX)(1:30) TO AL-SITE-NAME
-               MOVE ST-MEAN(STN-IDX)            TO AL-MEAN
-               MOVE ST-MEDIAN(STN-IDX)          TO AL-MEDIAN
-               MOVE ST-PCT-NORMAL(STN-IDX)      TO AL-PCT-NORMAL
-
-               EVALUATE TRUE
-                   WHEN ST-MEAN(STN-IDX) > ST-HIGH-THRESH(STN-IDX)
-                       MOVE '*** HIGH FLOW ***' TO AL-STATUS
-                   WHEN ST-MEAN(STN-IDX) < ST-LOW-THRESH(STN-IDX)
-                       MOVE '*** LOW FLOW  ***' TO AL-STATUS
-                   WHEN ST-PCT-NORMAL(STN-IDX) > 200
-                       MOVE 'ABOVE NORMAL    ' TO AL-STATUS
-                   WHEN ST-PCT-NORMAL(STN-IDX) < 50
-                       MOVE 'BELOW NORMAL    ' TO AL-STATUS
-                   WHEN OTHER
-                       MOVE 'NORMAL          ' TO AL-STATUS
-               END-EVALUATE
-
-               WRITE RPT-LINE FROM WS-ALERT-LINE
-           END-PERFORM
-           WRITE RPT-LINE FROM WS-BLANK-LINE.
-
-      *================================================================*
-       6400-WRITE-SECTION-III.
-      *================================================================*
-           MOVE 'SECTION III: WATERSHED BASIN ROLL-UP'
-               TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-           WRITE RPT-LINE FROM WS-BASIN-COL
-           MOVE ALL '-' TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-
-           PERFORM VARYING BSN-IDX FROM 1 BY 1
-               UNTIL BSN-IDX > WS-BASIN-COUNT
-               MOVE SPACES TO WS-BASIN-LINE
-               MOVE BS-NAME(BSN-IDX)           TO BL-NAME
-               MOVE BS-STATION-COUNT(BSN-IDX)  TO BL-STATIONS
-               MOVE BS-TOTAL(BSN-IDX)          TO BL-TOTAL
-               WRITE RPT-LINE FROM WS-BASIN-LINE
-           END-PERFORM
-           WRITE RPT-LINE FROM WS-BLANK-LINE.
-
-      *================================================================*
-       6500-WRITE-SECTION-IV.
-      *================================================================*
-           MOVE 'SECTION IV: RUN SUMMARY'
-               TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-BLANK-LINE
-
-           MOVE SPACES TO WS-SUMMARY-LINE
-           MOVE '  STATIONS PROCESSED:          ' TO SL-LABEL
-           MOVE WS-STATION-COUNT TO SL-VALUE
-           WRITE RPT-LINE FROM WS-SUMMARY-LINE
-
-           MOVE SPACES TO WS-SUMMARY-LINE
-           MOVE '  TOTAL DATA RECORDS READ:     ' TO SL-LABEL
-           MOVE WS-TOTAL-RECORDS TO SL-VALUE
-           WRITE RPT-LINE FROM WS-SUMMARY-LINE
-
-           MOVE SPACES TO WS-SUMMARY-LINE
-           MOVE '  RECORDS SKIPPED (INVALID):   ' TO SL-LABEL
-           MOVE WS-SKIPPED-RECORDS TO SL-VALUE
-           WRITE RPT-LINE FROM WS-SUMMARY-LINE
-
-           MOVE SPACES TO WS-SUMMARY-LINE
-           MOVE '  TOTAL THRESHOLD ALERTS:      ' TO SL-LABEL
-           MOVE WS-TOTAL-ALERTS TO SL-VALUE
-           WRITE RPT-LINE FROM WS-SUMMARY-LINE
-
-           MOVE SPACES TO WS-SUMMARY-LINE
-           MOVE '  WATERSHED BASINS ANALYZED:   ' TO SL-LABEL
-           MOVE WS-BASIN-COUNT TO SL-VALUE
-           WRITE RPT-LINE FROM WS-SUMMARY-LINE
-           WRITE RPT-LINE FROM WS-BLANK-LINE.
-
-      *================================================================*
-       6600-WRITE-FOOTER.
-      *================================================================*
-           WRITE RPT-LINE FROM WS-HEADER-1
-           MOVE
-           '  END OF REPORT - SIERRA NEVADA WATERSHED ANALYSIS V2.0'
-               TO WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-REPORT-LINE
-           WRITE RPT-LINE FROM WS-HEADER-1.
-
-      *================================================================*
-       8000-CLEAR-PARSE-AREA.
-      *================================================================*
-           MOVE 1 TO WS-PARSE-PTR
-           MOVE 1 TO WS-FIELD-NUM
-           MOVE 1 TO WS-FIELD-PTR
-           MOVE SPACES TO WS-FIELDS(1) WS-FIELDS(2) WS-FIELDS(3)
-                          WS-FIELDS(4) WS-FIELDS(5) WS-FIELDS(6).
-
-      *================================================================*
-       8100-PARSE-CSV-LINE.
-      *================================================================*
-           MOVE SF-RECORD(WS-PARSE-PTR:1) TO WS-CHAR
-           IF WS-CHAR = ','
-               ADD 1 TO WS-FIELD-NUM
-               MOVE 1 TO WS-FIELD-PTR
-           ELSE
-               IF WS-FIELD-NUM <= 6
-                   MOVE WS-CHAR TO
-                       WS-FIELDS(WS-FIELD-NUM)(WS-FIELD-PTR:1)
-                   ADD 1 TO WS-FIELD-PTR
+       6200-SECTION-I.
+           MOVE 'SECTION I: LATEST DAILY MEAN VS NORMAL FOR THE DATE'
+               TO WS-LINE
+           WRITE RPT-LINE FROM WS-LINE
+           MOVE SPACES TO WS-LINE
+           STRING '  NORMAL = PERCENTILES OF DAILY FLOW FOR THE DATE, '
+               'WATER YEARS 1996-2025, 7-DAY WINDOW. CLASSES AS USGS '
+               'WATERWATCH.' DELIMITED BY SIZE INTO WS-LINE
+           END-STRING
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-BLANK
+           WRITE RPT-LINE FROM WS-S1-HEAD
+           WRITE RPT-LINE FROM WS-RULE-DASH
+           PERFORM VARYING WS-OI FROM 1 BY 1 UNTIL WS-OI > WS-NORDER
+               SET SX TO WS-ORDER(WS-OI)
+               MOVE SPACES TO WS-S1-LINE
+               MOVE S-ID(SX)   TO L1-ID
+               MOVE S-NAME(SX) TO L1-NAME
+               IF S-NDAYS(SX) = 0
+                   MOVE 'NO DATA' TO L1-CLASS
+               ELSE
+                   MOVE R-LAST-SLOT(SX) TO WS-SLOT
+                   MOVE R-LAST-DATE(SX) TO L1-DATE
+                   MOVE R-LAST-FLOW(SX) TO L1-CFS
+                   MOVE N-P10(SX, WS-SLOT) TO L1-P10
+                   MOVE N-P25(SX, WS-SLOT) TO L1-P25
+                   MOVE N-P50(SX, WS-SLOT) TO L1-P50
+                   MOVE N-P75(SX, WS-SLOT) TO L1-P75
+                   MOVE N-P90(SX, WS-SLOT) TO L1-P90
+                   IF R-HAS-MED(SX) = 'Y'
+                       MOVE R-PCT-MED(SX) TO WS-ED-PCT
+                       STRING WS-ED-PCT '%' DELIMITED BY SIZE
+                           INTO L1-PCT
+                       END-STRING
+                   ELSE
+                       MOVE '     --' TO L1-PCT
+                   END-IF
+                   MOVE R-CLASS(SX) TO L1-CLASS
+                   IF R-STALE(SX) = 'Y'
+                       MOVE '*' TO L1-FLAG
+                   END-IF
                END-IF
-           END-IF.
+               WRITE RPT-LINE FROM WS-S1-LINE
+           END-PERFORM
+           WRITE RPT-LINE FROM WS-BLANK.
+
+       6300-SECTION-II.
+           MOVE 'SECTION II: LAST 30 DAYS VS NORMAL FOR THOSE DATES'
+               TO WS-LINE
+           WRITE RPT-LINE FROM WS-LINE
+           MOVE SPACES TO WS-LINE
+           STRING '  % NORMAL = 30-DAY TOTAL FLOW / TOTAL OF THE DAILY '
+               'MEDIANS. TREND = LAST 7 DAYS VS THE 7 BEFORE, '
+               '+/-10% OR MORE.' DELIMITED BY SIZE INTO WS-LINE
+           END-STRING
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-BLANK
+           WRITE RPT-LINE FROM WS-S2-HEAD
+           WRITE RPT-LINE FROM WS-RULE-DASH
+           PERFORM VARYING WS-OI FROM 1 BY 1 UNTIL WS-OI > WS-NORDER
+               SET SX TO WS-ORDER(WS-OI)
+               IF S-NDAYS(SX) > 0
+                   MOVE SPACES TO WS-S2-LINE
+                   MOVE S-ID(SX)        TO L2-ID
+                   MOVE S-NAME(SX)      TO L2-NAME
+                   MOVE R-N30(SX)       TO L2-DAYS
+                   MOVE R-MEAN30(SX)    TO L2-MEAN
+                   MOVE R-MIN30(SX)     TO L2-MIN
+                   MOVE R-MAX30(SX)     TO L2-MAX
+                   IF R-HAS-PCT30(SX) = 'Y'
+                       MOVE R-PCT30(SX) TO WS-ED-PCT
+                       STRING ' ' WS-ED-PCT '%' DELIMITED BY SIZE
+                           INTO L2-PCT
+                       END-STRING
+                   ELSE
+                       MOVE '      --' TO L2-PCT
+                   END-IF
+                   MOVE R-LOW-DAYS(SX)  TO L2-LOW
+                   MOVE R-HIGH-DAYS(SX) TO L2-HIGH
+                   MOVE R-TREND(SX)     TO L2-TREND
+                   IF R-HAS-TREND(SX) = 'Y'
+                      AND R-TREND(SX) NOT = 'STEADY'
+                       MOVE R-TREND-PCT(SX) TO WS-ED-SPCT
+                       STRING WS-ED-SPCT '%' DELIMITED BY SIZE
+                           INTO L2-TPCT
+                       END-STRING
+                   END-IF
+                   WRITE RPT-LINE FROM WS-S2-LINE
+               END-IF
+           END-PERFORM
+           WRITE RPT-LINE FROM WS-BLANK.
+
+       6400-SECTION-III.
+           MOVE 'SECTION III: WATERSHED BASINS' TO WS-LINE
+           WRITE RPT-LINE FROM WS-LINE
+           MOVE SPACES TO WS-LINE
+           STRING '  GAGES ON ONE RIVER MEASURE THE SAME WATER, SO '
+               'THEY ARE NOT ADDED. THE LOWEST GAGE IS WHAT LEAVES '
+               'THE BASIN.' DELIMITED BY SIZE INTO WS-LINE
+           END-STRING
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-BLANK
+           WRITE RPT-LINE FROM WS-S3-HEAD
+           WRITE RPT-LINE FROM WS-RULE-DASH
+           PERFORM VARYING BX FROM 1 BY 1 UNTIL BX > WS-NBASINS
+               MOVE SPACES TO WS-S3-LINE
+               MOVE B-NAME(BX)  TO L3-BASIN
+               MOVE B-GAGES(BX) TO L3-GAGES
+               SET SX TO B-OUTLET(BX)
+               MOVE S-NAME(SX)  TO L3-OUTLET
+               MOVE R-LAST-FLOW(SX) TO L3-CFS
+               MOVE R-CLASS(SX) TO L3-CLASS
+               MOVE B-CLASS-N(BX, 1) TO L3-C1
+               MOVE B-CLASS-N(BX, 2) TO L3-C2
+               MOVE B-CLASS-N(BX, 3) TO L3-C3
+               MOVE B-CLASS-N(BX, 4) TO L3-C4
+               MOVE B-CLASS-N(BX, 5) TO L3-C5
+               WRITE RPT-LINE FROM WS-S3-LINE
+           END-PERFORM
+           WRITE RPT-LINE FROM WS-BLANK.
+
+       6500-SECTION-IV.
+           MOVE 'SECTION IV: RUN SUMMARY' TO WS-LINE
+           WRITE RPT-LINE FROM WS-LINE
+           WRITE RPT-LINE FROM WS-BLANK
+           MOVE 'GAGES PROCESSED ...................' TO SL-LABEL
+           MOVE WS-NSITES TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'DAILY NORMALS READ ................' TO SL-LABEL
+           MOVE WS-NORMS-READ TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'DAILY MEANS READ ..................' TO SL-LABEL
+           MOVE WS-FLOWS-READ TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'RECORDS SKIPPED (INVALID) .........' TO SL-LABEL
+           MOVE WS-SKIPPED TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'GAGES STALE OR WITHOUT DATA .......' TO SL-LABEL
+           MOVE WS-STALE TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'WATERSHED BASINS ..................' TO SL-LABEL
+           MOVE WS-NBASINS TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           MOVE 'RETURN CODE .......................' TO SL-LABEL
+           MOVE WS-RC TO SL-VALUE
+           WRITE RPT-LINE FROM WS-SUM-LINE
+           WRITE RPT-LINE FROM WS-BLANK.
+
+      *================================================================*
+      * results.csv: THE SAME NUMBERS, ONE LINE PER GAGE, FOR THE WEB  *
+      *================================================================*
+       7000-WRITE-RESULTS.
+           OPEN OUTPUT RESULTS-FILE
+           IF WS-FS-RES NOT = '00'
+               DISPLAY 'SFLW905E CANNOT OPEN results.csv'
+               MOVE 12 TO RETURN-CODE
+               STOP RUN
+           END-IF
+           MOVE SPACES TO RES-REC
+           STRING 'site_id,basin,seq,last_date,last_cfs,n_years,'
+               'p10,p25,p50,p75,p90,class,pct_median,days_30,'
+               'mean_30,min_30,max_30,pct_normal_30,days_below_p10,'
+               'days_above_p90,trend,trend_pct,stale,run_date,'
+               'run_time,rc' DELIMITED BY SIZE INTO RES-REC
+           END-STRING
+           WRITE RES-REC
+           PERFORM VARYING WS-OI FROM 1 BY 1 UNTIL WS-OI > WS-NORDER
+               SET SX TO WS-ORDER(WS-OI)
+               PERFORM 7100-RESULT-LINE
+           END-PERFORM
+           CLOSE RESULTS-FILE.
+
+       7100-RESULT-LINE.
+           MOVE SPACES TO RES-REC
+           MOVE 1 TO WS-PTR
+           MOVE S-SEQ(SX) TO WS-ED-SMALL
+           STRING FUNCTION TRIM(S-ID(SX)) ','
+                  FUNCTION TRIM(S-BASIN(SX)) ','
+                  FUNCTION TRIM(WS-ED-SMALL) ','
+                  FUNCTION TRIM(R-LAST-DATE(SX)) ','
+                  DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           IF S-NDAYS(SX) = 0
+               STRING ',,,,,,,NO DATA,,,,,,,,,,,Y,'
+                   DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+               END-STRING
+               PERFORM 7200-RUN-FIELDS
+               WRITE RES-REC
+               EXIT PARAGRAPH
+           END-IF
+           MOVE R-LAST-SLOT(SX) TO WS-SLOT
+           MOVE R-LAST-FLOW(SX) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE N-YEARS(SX, WS-SLOT) TO WS-ED-SMALL
+           STRING FUNCTION TRIM(WS-ED-SMALL) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           MOVE N-P10(SX, WS-SLOT) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE N-P25(SX, WS-SLOT) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE N-P50(SX, WS-SLOT) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE N-P75(SX, WS-SLOT) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE N-P90(SX, WS-SLOT) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           STRING FUNCTION TRIM(R-CLASS(SX)) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           IF R-HAS-MED(SX) = 'Y'
+               MOVE R-PCT-MED(SX) TO WS-ED-PCT
+               STRING FUNCTION TRIM(WS-ED-PCT)
+                   DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+               END-STRING
+           END-IF
+           MOVE R-N30(SX) TO WS-ED-SMALL
+           STRING ',' FUNCTION TRIM(WS-ED-SMALL) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           MOVE R-MEAN30(SX) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE R-MIN30(SX) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           MOVE R-MAX30(SX) TO WS-ED-CFS
+           PERFORM 7300-ADD-CFS
+           IF R-HAS-PCT30(SX) = 'Y'
+               MOVE R-PCT30(SX) TO WS-ED-PCT
+               STRING FUNCTION TRIM(WS-ED-PCT)
+                   DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+               END-STRING
+           END-IF
+           MOVE R-LOW-DAYS(SX) TO WS-ED-SMALL
+           STRING ',' FUNCTION TRIM(WS-ED-SMALL) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           MOVE R-HIGH-DAYS(SX) TO WS-ED-SMALL
+           STRING FUNCTION TRIM(WS-ED-SMALL) ','
+                  FUNCTION TRIM(R-TREND(SX)) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           IF R-HAS-TREND(SX) = 'Y'
+               MOVE R-TREND-PCT(SX) TO WS-ED-SPCT
+               STRING FUNCTION TRIM(WS-ED-SPCT)
+                   DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+               END-STRING
+           END-IF
+           STRING ',' R-STALE(SX) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING
+           PERFORM 7200-RUN-FIELDS
+           WRITE RES-REC.
+
+       7200-RUN-FIELDS.
+           MOVE WS-RC TO WS-ED-SMALL
+           STRING WS-RUN-DATE ',' WS-RUN-TIME ','
+                  FUNCTION TRIM(WS-ED-SMALL)
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING.
+
+       7300-ADD-CFS.
+           STRING FUNCTION TRIM(WS-ED-CFS) ','
+               DELIMITED BY SIZE INTO RES-REC WITH POINTER WS-PTR
+           END-STRING.
+
+      *================================================================*
+      * CSV HELPERS                                                    *
+      *================================================================*
+       8000-SPLIT-SITES.
+           MOVE SPACES TO WS-FIELDS
+           UNSTRING SITES-REC DELIMITED BY ','
+               INTO WS-FLD(1) WS-FLD(2) WS-FLD(3) WS-FLD(4)
+                    WS-FLD(5) WS-FLD(6) WS-FLD(7) WS-FLD(8)
+                    WS-FLD(9) WS-FLD(10)
+           END-UNSTRING.
+
+       8100-FIND-SITE.
+           MOVE 0 TO WS-FOUND
+           PERFORM VARYING WS-J FROM 1 BY 1
+                   UNTIL WS-J > WS-NSITES OR WS-FOUND > 0
+               IF S-ID(WS-J) = WS-FLD(1)(1:8)
+                   MOVE WS-J TO WS-FOUND
+               END-IF
+           END-PERFORM.
 
       *================================================================*
        9000-TERMINATE.
       *================================================================*
-           CLOSE REPORT-FILE
-           DISPLAY 'SIERRA-FLOW V2.0: REPORT WRITTEN TO'
-               ' streamflow-report.txt'
-           DISPLAY 'SIERRA-FLOW V2.0: JOB COMPLETE. NORMAL TERMINATION'
-           DISPLAY '.'.
+           MOVE WS-STALE TO WS-ED-CNT
+           DISPLAY 'SFLW005I GAGES STALE OR NO DATA ....' WS-ED-CNT
+           DISPLAY 'SFLW006I REPORT WRITTEN: streamflow-report.txt'
+           DISPLAY 'SFLW007I RESULTS WRITTEN: results.csv'
+           MOVE WS-RC TO RETURN-CODE
+           MOVE WS-RC TO WS-ED-SMALL
+           DISPLAY 'SFLW999I SIERRA-FLOW ENDED  RC=' WS-ED-SMALL.

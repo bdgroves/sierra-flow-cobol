@@ -1,0 +1,22 @@
+JOB SIERRAFL   2026-10-03 00:49:09 UTC
+HOST           Linux x86_64 · cobc (GnuCOBOL) 3.1.2.0 · Python 3.12.3
+
+STEP FETCH      RC=0000    0.01s  python3 fetch_usgs.py
+      (stub) kept streamflow.csv
+
+STEP COMPILE    RC=0000    0.35s  cobc -x -o sierra-flow SIERRA-FLOW.cob
+
+STEP NORMALS    skipped: normals.csv is current (see normals-log.txt)
+
+STEP SIERRAFL   RC=0000    0.03s  ./sierra-flow
+    SFLW000I SIERRA-FLOW V3.0 STARTED 2026-10-03 00:49:09 UTC
+    SFLW001I GAGES LOADED ..............     8
+    SFLW002I DAILY NORMALS LOADED ......  2928
+    SFLW003I DAILY MEANS LOADED ........   480
+    SFLW004I RECORDS SKIPPED ...........     0
+    SFLW005I GAGES STALE OR NO DATA ....     0
+    SFLW006I REPORT WRITTEN: streamflow-report.txt
+    SFLW007I RESULTS WRITTEN: results.csv
+    SFLW999I SIERRA-FLOW ENDED  RC= 0
+
+JOB SIERRAFL   ENDED  MAXCC=0000  0.4s

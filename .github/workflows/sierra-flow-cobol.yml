@@ -1,53 +1,49 @@
-name: Sierra Flow - Daily Streamflow Processing
+name: Sierra Flow - Daily Batch
 
 on:
+  schedule:
+    - cron: '17 14 * * *'    # 14:17 UTC = 7:17 AM PDT / 6:17 AM PST (GitHub often starts it later)
+  workflow_dispatch:
+    inputs:
+      rebuild_normals:
+        description: Rebuild normals.csv from 30 years of USGS history
+        type: boolean
+        default: false
   push:
     branches: [ main ]
-  schedule:
-    - cron: '0 14 * * *'   # 14:00 UTC = 7:00 AM Pacific / 6:00 AM PDT
-  workflow_dispatch:
+    paths: [ '*.cob', 'fetch_usgs.py', 'sites.csv', 'run_job.sh', '.github/workflows/sierra-flow-cobol.yml' ]
 
 permissions:
   contents: write
 
-jobs:
-  fetch-and-process:
-    runs-on: ubuntu-latest
+concurrency:
+  group: sierra-flow-batch
+  cancel-in-progress: false
 
+jobs:
+  batch:
+    runs-on: ubuntu-24.04          # pinned: gnucobol3 3.1.2 from Ubuntu noble
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install GnuCOBOL
-        run: sudo apt-get install -y gnucobol
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gnucobol3 bc > /dev/null && cobc --version | head -1
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Run the batch job
+        run: ./run_job.sh ${{ inputs.rebuild_normals && '--normals' || '' }}
 
-      - name: Fetch live USGS streamflow data
-        run: |
-          echo "Fetching live data from USGS Water Services API..."
-          python3 fetch_usgs.py
+      - name: Job log
+        if: always()
+        run: cat job-log.txt || true
 
-      - name: Show fetched data (first 10 rows)
-        run: head -11 streamflow.csv
-
-      - name: Compile SIERRA-FLOW.cob
-        run: cobc -x -o sierra-flow SIERRA-FLOW.cob
-
-      - name: Run Sierra Flow processor
-        run: ./sierra-flow
-
-      - name: Show report
+      - name: Report
         run: cat streamflow-report.txt
 
-      - name: Commit updated data and report
+      - name: Commit the outputs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add streamflow.csv streamflow-report.txt
-          git diff --staged --quiet || git commit -m \
-            "data: daily streamflow update $(date -u '+%Y-%m-%d') [skip ci]"
-          git push
+          git add streamflow.csv streamflow-report.txt results.csv job-log.txt normals.csv normals-log.txt
+          if git diff --staged --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -q -m "data: daily batch $(date -u '+%Y-%m-%d') [skip ci]"
+          git pull -q --rebase && git push -q
