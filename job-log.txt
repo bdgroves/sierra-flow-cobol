@@ -1,15 +1,45 @@
-JOB SIERRAFL   2026-10-03 00:49:09 UTC
+JOB SIERRAFL   2026-10-03 00:50:03 UTC
 HOST           Linux x86_64 · cobc (GnuCOBOL) 3.1.2.0 · Python 3.12.3
+RUN            GitHub Actions run 200 (workflow_dispatch)
 
-STEP FETCH      RC=0000    0.01s  python3 fetch_usgs.py
-      (stub) kept streamflow.csv
+STEP FETCH      RC=0000    3.69s  python3 fetch_usgs.py
+    SIERRA-FLOW USGS FETCH  2026-10-03 00:50 UTC
+      11274790  Tuolumne R Grand Canyon      60 days, last 2026-10-01
+      11276500  Tuolumne R nr Hetch Hetchy   60 days, last 2026-10-01
+      11284400  Big Creek nr Groveland       60 days, last 2026-10-01
+      11289650  Tuolumne R bl La Grange      60 days, last 2026-10-01
+      11290000  Tuolumne R at Modesto        60 days, last 2026-10-01
+      11264500  Merced R at Happy Isles      60 days, last 2026-10-01
+      11266500  Merced R at Pohono Bridge    60 days, last 2026-10-01
+      11303000  Stanislaus R at Ripon        60 days, last 2026-10-01
+    Wrote 480 daily means to streamflow.csv
 
 STEP COMPILE    RC=0000    0.35s  cobc -x -o sierra-flow SIERRA-FLOW.cob
 
-STEP NORMALS    skipped: normals.csv is current (see normals-log.txt)
+STEP HISTORY    RC=0000   11.56s  python3 fetch_usgs.py --history
+    SIERRA-FLOW USGS FETCH  2026-10-03 00:50 UTC
+      11274790  Tuolumne R Grand Canyon        6793 days  2006-10-13 to 2025-09-30
+      11276500  Tuolumne R nr Hetch Hetchy    10958 days  1995-10-01 to 2025-09-30
+      11284400  Big Creek nr Groveland        10958 days  1995-10-01 to 2025-09-30
+      11289650  Tuolumne R bl La Grange       10958 days  1995-10-01 to 2025-09-30
+      11290000  Tuolumne R at Modesto         10958 days  1995-10-01 to 2025-09-30
+      11264500  Merced R at Happy Isles       10958 days  1995-10-01 to 2025-09-30
+      11266500  Merced R at Pohono Bridge     10958 days  1995-10-01 to 2025-09-30
+      11303000  Stanislaus R at Ripon         10958 days  1995-10-01 to 2025-09-30
+    Wrote 83499 daily means to history.csv
 
-STEP SIERRAFL   RC=0000    0.03s  ./sierra-flow
-    SFLW000I SIERRA-FLOW V3.0 STARTED 2026-10-03 00:49:09 UTC
+STEP COMPILE    RC=0000    0.12s  cobc -x -o normals NORMALS.cob
+
+STEP NORMALS    RC=0000    1.13s  ./normals
+    NRML000I NORMALS V1.0 STARTED
+    NRML010I DAILY VALUES READ ......   83499
+    NRML011I SKIPPED (NO VALUE) .....       0
+    NRML012I RECORDS SORTED .........  584493
+    NRML013I NORMALS WRITTEN ........    2928
+    NRML999I NORMALS ENDED
+
+STEP SIERRAFL   RC=0000    0.02s  ./sierra-flow
+    SFLW000I SIERRA-FLOW V3.0 STARTED 2026-10-03 00:50:20 UTC
     SFLW001I GAGES LOADED ..............     8
     SFLW002I DAILY NORMALS LOADED ......  2928
     SFLW003I DAILY MEANS LOADED ........   480
@@ -19,4 +49,4 @@ STEP SIERRAFL   RC=0000    0.03s  ./sierra-flow
     SFLW007I RESULTS WRITTEN: results.csv
     SFLW999I SIERRA-FLOW ENDED  RC= 0
 
-JOB SIERRAFL   ENDED  MAXCC=0000  0.4s
+JOB SIERRAFL   ENDED  MAXCC=0000  16.9s

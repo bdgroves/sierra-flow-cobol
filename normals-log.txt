@@ -1,10 +1,19 @@
-NORMALS BUILT  2026-10-03 00:49:09 UTC  from water years 1996-2025
+NORMALS BUILT  2026-10-03 00:50:20 UTC  from water years 1996-2025
 
-STEP HISTORY    RC=0000    0.01s  python3 fetch_usgs.py --history
-      (stub) wrote history.csv
+STEP HISTORY    RC=0000   11.56s  python3 fetch_usgs.py --history
+    SIERRA-FLOW USGS FETCH  2026-10-03 00:50 UTC
+      11274790  Tuolumne R Grand Canyon        6793 days  2006-10-13 to 2025-09-30
+      11276500  Tuolumne R nr Hetch Hetchy    10958 days  1995-10-01 to 2025-09-30
+      11284400  Big Creek nr Groveland        10958 days  1995-10-01 to 2025-09-30
+      11289650  Tuolumne R bl La Grange       10958 days  1995-10-01 to 2025-09-30
+      11290000  Tuolumne R at Modesto         10958 days  1995-10-01 to 2025-09-30
+      11264500  Merced R at Happy Isles       10958 days  1995-10-01 to 2025-09-30
+      11266500  Merced R at Pohono Bridge     10958 days  1995-10-01 to 2025-09-30
+      11303000  Stanislaus R at Ripon         10958 days  1995-10-01 to 2025-09-30
+    Wrote 83499 daily means to history.csv
 
 
-STEP NORMALS    RC=0000    1.65s  ./normals
+STEP NORMALS    RC=0000    1.13s  ./normals
     NRML000I NORMALS V1.0 STARTED
     NRML010I DAILY VALUES READ ......   83499
     NRML011I SKIPPED (NO VALUE) .....       0
