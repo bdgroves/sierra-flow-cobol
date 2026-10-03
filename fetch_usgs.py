@@ -1,141 +1,117 @@
 #!/usr/bin/env python3
 """
-fetch_usgs.py
-Fetches current USGS streamflow discharge data for 8 Sierra Nevada gages
-and writes streamflow.csv for processing by SIERRA-FLOW.cob
+fetch_usgs.py - feeds the COBOL batch.
 
-Site IDs verified from Sierra Streamflow Monitor (bdgroves.github.io/sierra-streamflow)
-USGS Water Services API - no API key required
+Reads the eight gages from sites.csv and asks the USGS Water Data API
+(api.waterdata.usgs.gov, OGC API, free, no key) for daily mean discharge.
+
+  python3 fetch_usgs.py              -> streamflow.csv   last 60 complete days
+  python3 fetch_usgs.py --history    -> history.csv      water years 1996-2025,
+                                                         input for NORMALS.cob
+
+Daily means are what USGS publishes as the day's flow (statistic 00003), so
+nothing here picks a reading out of the day. Today's partial day is left out.
+If a gage doesn't answer, its rows from the previous streamflow.csv are kept,
+and SIERRA-FLOW flags them as stale. Standard library only.
 """
 
-import urllib.request
-import json
 import csv
+import json
 import sys
-from datetime import datetime, timezone
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
-# 8 verified active USGS gages - Tuolumne, Merced, Stanislaus watersheds
-SITES = [
-    ("11276500", "Tuolumne River at Hetch Hetchy"),
-    ("11274790", "Tuolumne River Grand Canyon"),
-    ("11289650", "Tuolumne River at LaGrange Dam"),
-    ("11290000", "Tuolumne River at Modesto"),
-    ("11266500", "Merced River at Pohono Bridge"),
-    ("11264500", "Merced River at Happy Isles"),
-    ("11303000", "Stanislaus River at Ripon"),
-    ("11284400", "Big Creek near Hetch Hetchy"),
-]
-
-PARAM_DISCHARGE = "00060"
-PARAM_GAGE_HT   = "00065"
-OUTPUT_FILE = "streamflow.csv"
-DAYS_BACK = 30
+API = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items"
+UA = {"User-Agent": "sierra-flow-cobol/3.0 (github.com/bdgroves/sierra-flow-cobol)"}
+DAYS_BACK = 60
+HIST_START, HIST_END = "1995-10-01", "2025-09-30"     # water years 1996-2025
 
 
-def fetch_usgs_data(site_id, site_name):
-    url = (
-        f"https://waterservices.usgs.gov/nwis/iv/"
-        f"?format=json"
-        f"&sites={site_id}"
-        f"&parameterCd={PARAM_DISCHARGE},{PARAM_GAGE_HT}"
-        f"&period=P{DAYS_BACK}D"
-        f"&siteStatus=active"
-    )
-    print(f"  Fetching {site_id} - {site_name}...", end=" ")
+def sites():
+    with open("sites.csv", newline="", encoding="utf-8") as f:
+        return [(r["site_id"], r["short_name"]) for r in csv.DictReader(f)]
+
+
+def daily(site_id, start, end):
+    """Daily mean discharge for one gage as {date: cfs}. Retries; None if USGS won't answer."""
+    q = (f"{API}?f=json&monitoring_location_id=USGS-{site_id}&parameter_code=00060"
+         f"&statistic_id=00003&datetime={start}/{end}&limit=50000"
+         f"&properties=time,value,approval_status&skipGeometry=true")
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(q, headers=UA), timeout=90) as r:
+                feats = json.loads(r.read().decode("utf-8")).get("features", [])
+            out = {}
+            for ft in feats:
+                p = ft.get("properties", {})
+                try:
+                    v = float(p.get("value"))
+                except (TypeError, ValueError):
+                    continue
+                if v >= 0:
+                    out[p["time"][:10]] = (v, (p.get("approval_status") or "")[:1])
+            return out
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+            print(f"    attempt {attempt + 1}: {e}")
+            time.sleep(5 * (attempt + 1))
+    return None
+
+
+def previous_rows():
     try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "sierra-flow-cobol/2.0 (github.com/bdgroves/sierra-flow-cobol)"}
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        print(f"ERROR: {e}")
+        with open("streamflow.csv", newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        return rows if rows and "date" in rows[0] else []
+    except FileNotFoundError:
         return []
 
-    records = []
-    time_series = data.get("value", {}).get("timeSeries", [])
-    param_data = {}
-    for ts in time_series:
-        variable = ts.get("variable", {})
-        param_code = variable.get("variableCode", [{}])[0].get("value", "")
-        values = ts.get("values", [{}])[0].get("value", [])
-        param_data[param_code] = {
-            v["dateTime"]: v["value"]
-            for v in values
-            if v.get("value") not in (None, "", "-999999")
-        }
 
-    discharge_map = param_data.get(PARAM_DISCHARGE, {})
-    gage_ht_map   = param_data.get(PARAM_GAGE_HT, {})
-
-    for dt_str, discharge_val in sorted(discharge_map.items()):
-        try:
-            discharge = float(discharge_val)
-            if discharge < 0:
-                continue
-        except (ValueError, TypeError):
+def recent():
+    today = datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    start = (today - timedelta(days=DAYS_BACK)).isoformat()
+    end = (today - timedelta(days=1)).isoformat()
+    old = previous_rows()
+    rows, failed = [], []
+    for sid, name in sites():
+        print(f"  {sid}  {name:<28}", end=" ", flush=True)
+        d = daily(sid, start, end)
+        if d is None:
+            kept = [r for r in old if r["site_id"] == sid]
+            rows += kept
+            failed.append(sid)
+            print(f"NO ANSWER - kept {len(kept)} rows from the last run")
             continue
-
-        meas_date = dt_str[:10]
-        gage_ht_val = gage_ht_map.get(dt_str, "")
-        try:
-            gage_ht = round(float(gage_ht_val), 2) if gage_ht_val else ""
-        except (ValueError, TypeError):
-            gage_ht = ""
-
-        records.append({
-            "site_id":          site_id,
-            "site_name":        site_name,
-            "measurement_date": meas_date,
-            "discharge_cfs":    round(discharge, 2),
-            "gage_height_ft":   gage_ht,
-        })
-
-    # One reading per day (last of day wins)
-    daily = {}
-    for r in records:
-        daily[r["measurement_date"]] = r
-    records = sorted(daily.values(), key=lambda x: x["measurement_date"])
-    print(f"{len(records)} records")
-    return records
+        days = sorted(k for k in d if k < today.isoformat())
+        rows += [{"site_id": sid, "date": k, "cfs": f"{d[k][0]:.2f}", "approval": d[k][1]} for k in days]
+        print(f"{len(days)} days, last {days[-1] if days else '-'}")
+    if not rows:
+        sys.exit("No data from USGS and nothing to keep. Stopping.")
+    with open("streamflow.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["site_id", "date", "cfs", "approval"], lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
+    print(f"Wrote {len(rows)} daily means to streamflow.csv" + (f"; no answer from {', '.join(failed)}" if failed else ""))
 
 
-def write_csv(all_records):
-    fieldnames = ["site_id", "site_name", "measurement_date", "discharge_cfs", "gage_height_ft"]
-    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(all_records)
-    print(f"\nWrote {len(all_records)} records to {OUTPUT_FILE}")
-
-
-def main():
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"SIERRA-FLOW USGS FETCH  //  {now}")
-    print(f"Fetching last {DAYS_BACK} days for {len(SITES)} sites...\n")
-
-    all_records = []
-    failed = []
-
-    for site_id, site_name in SITES:
-        records = fetch_usgs_data(site_id, site_name)
-        if records:
-            all_records.extend(records)
-        else:
-            failed.append(site_id)
-
-    if not all_records:
-        print("ERROR: No data fetched. Exiting.")
-        sys.exit(1)
-
-    write_csv(all_records)
-
-    if failed:
-        print(f"WARNING: No data for sites: {', '.join(failed)}")
-
-    print("Fetch complete. Ready for SIERRA-FLOW.")
+def history():
+    n = 0
+    with open("history.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(["site_id", "date", "cfs"])
+        for sid, name in sites():
+            d = daily(sid, HIST_START, HIST_END)
+            if d is None:
+                sys.exit(f"No history for {sid}; normals not rebuilt.")
+            for k in sorted(d):
+                w.writerow([sid, k, f"{d[k][0]:.2f}"])
+            n += len(d)
+            print(f"  {sid}  {name:<28} {len(d):>6} days  {min(d)} to {max(d)}")
+    print(f"Wrote {n} daily means to history.csv")
 
 
 if __name__ == "__main__":
-    main()
+    print(f"SIERRA-FLOW USGS FETCH  {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
+    history() if "--history" in sys.argv else recent()

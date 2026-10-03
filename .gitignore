@@ -1,3 +1,24 @@
+# Compiled programs
+sierra-flow
+sierra-flow.exe
+normals
+normals.exe
+
+# Work files
+history.csv
+*.tmp
+__pycache__/
+
+# GnuCOBOL intermediates
+*.c
+*.o
+*.so
+
+# macOS, editors
+.DS_Store
+.vscode/
+*.swp
+
 # pixi environments
 .pixi/*
 !.pixi/config.toml
