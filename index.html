@@ -1,364 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIERRA-FLOW // USGS Streamflow Processor</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --green: #00ff41; --green-dim: #00a827;
-      --green-glow: rgba(0,255,65,0.15); --green-faint: rgba(0,255,65,0.05);
-      --amber: #ffb300; --red: #ff4444; --bg: #020d02;
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html,body { background:var(--bg); color:var(--green); font-family:'Share Tech Mono',monospace; min-height:100vh; overflow-x:hidden; }
-    body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,.22) 2px,rgba(0,0,0,.22) 4px); pointer-events:none; z-index:1000; }
-    body::after  { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65) 100%); pointer-events:none; z-index:999; }
-    @keyframes flicker { 0%,89%,91%,93%,100%{opacity:1} 90%,92%{opacity:.88} }
-    @keyframes blink   { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-    @keyframes fadeInUp{ from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes glow-pulse{ 0%,100%{text-shadow:0 0 8px var(--green),0 0 20px var(--green-dim)} 50%{text-shadow:0 0 18px var(--green),0 0 50px var(--green-dim)} }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    .container { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 5rem; animation:flicker 12s infinite; }
-    .header { border:1px solid var(--green-dim); padding:2rem 2rem 1.5rem; margin-bottom:2rem; background:var(--green-faint); box-shadow:0 0 40px var(--green-glow); animation:fadeInUp .6s ease both; }
-    .ascii-title { font-family:'VT323',monospace; font-size:clamp(2.8rem,6vw,4.4rem); line-height:1; color:var(--green); animation:glow-pulse 5s ease-in-out infinite; letter-spacing:.06em; }
-    .header-tagline { font-size:.78rem; color:var(--green-dim); margin-top:.5rem; letter-spacing:.14em; text-transform:uppercase; }
-    .status-bar { display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1.2rem; padding-top:1rem; border-top:1px solid #003300; font-size:.75rem; }
-    .s-item { color:var(--green-dim); } .s-item .v { color:var(--green); } .s-item .v.warn { color:var(--amber); }
-    .artemis-banner { border:1px solid var(--amber); padding:1rem 1.5rem; margin-bottom:2rem; background:rgba(255,179,0,.04); font-size:.82rem; line-height:1.8; color:var(--amber); animation:fadeInUp .6s .1s ease both; }
-    .artemis-banner .label { font-family:'VT323',monospace; font-size:1.2rem; letter-spacing:.1em; margin-bottom:.4rem; display:block; }
-    .artemis-banner .crew { color:#ffd055; font-size:.78rem; margin-top:.4rem; }
-    .section { margin-bottom:1.8rem; animation:fadeInUp .7s ease both; }
-    .section-label { font-size:.68rem; color:var(--green-dim); letter-spacing:.18em; margin-bottom:.6rem; text-transform:uppercase; }
-    .section-label::before { content:'▶ '; color:var(--green); }
-    .panel { border:1px solid var(--green-dim); padding:1.4rem; background:var(--green-faint); }
-    .loading { text-align:center; padding:2rem; color:var(--green-dim); font-size:.85rem; }
-    .spinner { display:inline-block; width:1em; height:1em; border:2px solid var(--green-dim); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:.5rem; }
-    .error-msg { color:var(--red); font-size:.8rem; padding:1rem; border:1px solid var(--red); background:rgba(255,68,68,.05); }
-    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
-    .stat-card { border:1px solid var(--green-dim); padding:1rem; background:#000; text-align:center; transition:box-shadow .2s,border-color .2s; }
-    .stat-card:hover { box-shadow:0 0 20px var(--green-glow); border-color:var(--green); }
-    .stat-num { font-family:'VT323',monospace; font-size:2.6rem; color:var(--green); text-shadow:0 0 12px var(--green); display:block; line-height:1; }
-    .stat-num.warn { color:var(--amber); text-shadow:0 0 12px var(--amber); }
-    .stat-label { font-size:.65rem; color:var(--green-dim); letter-spacing:.1em; text-transform:uppercase; margin-top:.4rem; }
-    .tbl { width:100%; border-collapse:collapse; font-size:.72rem; }
-    .tbl th { color:var(--green-dim); text-align:left; padding:.35rem .6rem; border-bottom:1px solid var(--green-dim); font-weight:normal; letter-spacing:.1em; font-size:.62rem; white-space:nowrap; }
-    .tbl td { padding:.45rem .6rem; border-bottom:1px solid #001a00; color:var(--green); white-space:nowrap; }
-    .tbl tr:hover td { background:rgba(0,255,65,.04); }
-    .badge { display:inline-block; padding:.1rem .45rem; font-size:.62rem; letter-spacing:.06em; }
-    .badge-ok    { border:1px solid #004400; color:var(--green-dim); }
-    .badge-above { border:1px solid var(--green); color:var(--green); }
-    .badge-below { border:1px solid var(--amber); color:var(--amber); }
-    .badge-high  { border:1px solid var(--red); color:var(--red); }
-    .badge-low   { border:1px solid var(--amber); color:var(--amber); }
-    .trend-rising{color:var(--green)} .trend-falling{color:var(--amber)} .trend-stable{color:var(--green-dim)}
-    .basin-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
-    .basin-card { border:1px solid var(--green-dim); padding:1rem; background:#000; }
-    .basin-name { font-family:'VT323',monospace; font-size:1.4rem; color:var(--green); text-shadow:0 0 8px var(--green); }
-    .basin-total { font-size:.75rem; color:var(--green-dim); margin-top:.3rem; }
-    .basin-total span { color:var(--green); }
-    .sparkline-row { display:flex; align-items:center; gap:.8rem; padding:.4rem 0; border-bottom:1px solid #001a00; font-size:.72rem; }
-    .sparkline-row:last-child { border-bottom:none; }
-    .spark-name { width:220px; flex-shrink:0; color:var(--green-dim); overflow:hidden; text-overflow:ellipsis; }
-    .spark-canvas { flex:1; height:32px; }
-    .spark-val { width:80px; text-align:right; flex-shrink:0; color:var(--green); }
-    .code-block { background:#000; border:1px solid #002200; padding:1rem 1.2rem; font-size:.76rem; line-height:1.85; color:var(--green); overflow-x:auto; }
-    .code-block .p{color:var(--amber)} .code-block .c{color:var(--green-dim)} .code-block .cmd{color:#00ff41}
-    .desc { font-size:.83rem; line-height:1.9; color:var(--green-dim); }
-    .desc p { margin-bottom:.7rem; } .desc strong{color:var(--green)} .desc a{color:var(--green);text-decoration:none;}
-    .footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid #002200; font-size:.7rem; color:var(--green-dim); text-align:center; letter-spacing:.1em; line-height:2; }
-    .footer a{color:var(--green-dim);text-decoration:none;} .footer a:hover{color:var(--green);}
-    .cursor { display:inline-block; width:.55em; height:1em; background:var(--green); animation:blink 1s step-end infinite; vertical-align:text-bottom; margin-left:2px; }
-    hr.div { border:none; border-top:1px solid #002200; margin:2rem 0; }
-    ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:#000} ::-webkit-scrollbar-thumb{background:var(--green-dim)}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIERRA-FLOW · a COBOL batch job for Sierra rivers</title>
+<meta name="description" content="Eight Sierra Nevada river gages, run every morning through a GnuCOBOL batch job: today's flow against 30 years of normal for the date, printed on green-bar paper, with the program itself on punch cards.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --room:#18202a;      /* machine-room floor */
+  --room2:#212b37;
+  --rule:#344353;
+  --text:#d7dee6;
+  --muted:#8b99a8;
+  --phos:#5cff8a;      /* P1 phosphor */
+  --phos-dim:#2f9e57;
+  --phos-bg:#04110a;
+  --paper:#f7f4e6;
+  --bar:#d8ead3;
+  --ink:#2b2b2b;
+  --card:#efe2bf;
+  --card-ink:#5a4a2a;
+  --mb:#ff6a57; --b:#ffb547; --n:#5cff8a; --a:#5fd6ff; --ma:#7f9bff; --nn:#8b99a8;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --crt:'VT323',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--room)}
+body{background:var(--room);color:var(--text);font:16px/1.6 var(--sans);overflow-x:hidden}
+a{color:var(--phos)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 20px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;font:13px var(--mono);color:var(--muted)}
+.top a{color:var(--muted);text-decoration:none}
+.top a:hover{color:var(--text)}
+
+/* ── CONSOLE ───────────────────────────────── */
+.console{margin:6px 0 0;background:#2a3542;border-radius:22px;padding:18px;box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 30px 60px rgba(0,0,0,.45)}
+.screen{position:relative;background:radial-gradient(ellipse at 50% 40%,#072014 0%,var(--phos-bg) 70%);border-radius:14px;padding:26px 28px 22px;color:var(--phos);font:22px/1.15 var(--crt);text-shadow:0 0 6px rgba(92,255,138,.55);overflow:hidden;min-height:420px}
+.screen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.22) 2px 3px);pointer-events:none;border-radius:14px}
+.screen h1{font:400 clamp(48px,11vw,104px)/.9 var(--crt);letter-spacing:.02em;margin:0 0 4px;color:var(--phos)}
+.screen .sub{color:var(--phos-dim);font-size:22px;max-width:60ch}
+.screen .status{display:flex;flex-wrap:wrap;gap:4px 22px;margin:14px 0 6px;font-size:21px}
+.screen .status b{font-weight:400;color:var(--phos)}
+.screen .status span{color:var(--phos-dim)}
+.screen .warn{color:var(--b);text-shadow:0 0 6px rgba(255,181,71,.5)}
+.joblog{white-space:pre;font:19px/1.12 var(--crt);color:var(--phos-dim);max-height:0;overflow:hidden;transition:max-height .5s}
+.joblog.open{max-height:1400px}
+.cursor{display:inline-block;width:.55em;height:.95em;background:var(--phos);vertical-align:-2px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.gages{margin-top:14px;border-top:1px dashed rgba(92,255,138,.3);padding-top:10px}
+.g{display:grid;grid-template-columns:minmax(150px,1.4fr) 92px minmax(180px,2fr) 160px 120px;gap:14px;align-items:center;padding:5px 0;border-bottom:1px dashed rgba(92,255,138,.12);font-size:21px}
+.g.head{font-size:17px;color:var(--phos-dim);border-bottom:1px dashed rgba(92,255,138,.3)}
+.g .nm small{display:block;color:var(--phos-dim);font-size:17px;line-height:1}
+.g .cfs{text-align:right}
+.g .cls{white-space:nowrap}
+.g .now{color:var(--phos-dim);font-size:18px;line-height:1.05}
+.strip{position:relative;height:16px;display:flex;border:1px solid rgba(92,255,138,.35)}
+.strip i{display:block;height:100%;opacity:.28}
+.strip .mk{position:absolute;top:-5px;width:3px;height:24px;background:#fff;box-shadow:0 0 8px #fff;transform:translateX(-1px)}
+.c-mb{color:var(--mb)} .c-b{color:var(--b)} .c-n{color:var(--n)} .c-a{color:var(--a)} .c-ma{color:var(--ma)} .c-nn{color:var(--nn)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:18px;color:var(--phos-dim)}
+.legend i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
+
+/* ── PROSE AND SECTIONS ───────────────────── */
+section{padding:56px 0 8px}
+h2{font:600 28px/1.2 var(--sans);letter-spacing:-.01em;margin-bottom:8px;color:#fff}
+.lede{color:var(--muted);max-width:68ch;margin-bottom:22px}
+.lede b{color:var(--text);font-weight:500}
+
+/* hydrographs */
+.hydros{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.hy{background:var(--phos-bg);border:1px solid #0f3220;border-radius:10px;padding:12px 12px 8px;color:var(--phos);font:18px/1.1 var(--crt)}
+.hy h3{font:400 20px var(--crt);display:flex;justify-content:space-between;gap:8px}
+.hy h3 em{font-style:normal}
+.hy canvas{width:100%;height:150px;display:block;margin-top:6px}
+.hy p{color:var(--phos-dim);font-size:16px;margin-top:2px}
+
+/* map */
+#map{height:380px;border-radius:10px;border:1px solid var(--rule);background:#0b1118}
+.leaflet-container{font:13px var(--sans)}
+.leaflet-popup-content{font:13px/1.4 var(--sans)}
+
+/* ── PRINTOUT ─────────────────────────────── */
+.printer{background:#2a3542;border-radius:14px 14px 0 0;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font:13px var(--mono);color:var(--muted)}
+.printer .slot{flex:1 1 100%;height:10px;background:#0c1117;border-radius:5px;box-shadow:inset 0 2px 4px #000}
+.btn{font:13px var(--mono);background:none;border:1px solid var(--rule);color:var(--text);padding:5px 10px;border-radius:6px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed=true]{border-color:var(--phos);color:var(--phos)}
+.paperwell{overflow-x:auto;background:#10161d;padding:0 0 26px;border-radius:0 0 14px 14px}
+.paper{--lh:18px;position:relative;margin:0 auto;width:max-content;min-width:100%;padding:0 46px;background:
+  repeating-linear-gradient(to bottom,var(--bar) 0 calc(var(--lh)*3),var(--paper) calc(var(--lh)*3) calc(var(--lh)*6));
+  background-color:var(--paper);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.paper::before,.paper::after{content:"";position:absolute;top:0;bottom:0;width:30px;background:radial-gradient(circle at 15px 9px,#10161d 5.5px,transparent 6px) 0 0/30px 18px repeat-y,var(--paper)}
+.paper::before{left:0;border-right:1px dashed #c9c5b0}
+.paper::after{right:0;border-left:1px dashed #c9c5b0}
+.paper pre{font:500 12.4px/var(--lh) var(--mono);color:var(--ink);padding:calc(var(--lh)*2) 0 calc(var(--lh)*3);min-height:calc(var(--lh)*12);letter-spacing:0}
+.paper pre .ln{display:block;height:var(--lh);white-space:pre}
+.paper pre .ln.new{animation:strike .18s ease-out}
+@keyframes strike{from{color:transparent;text-shadow:0 0 0 transparent}to{}}
+.hint{font:13px var(--mono);color:var(--muted);margin-top:8px}
+
+/* ── PUNCH CARDS ──────────────────────────── */
+.deck{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.deckctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font:14px var(--mono);color:var(--muted)}
+.deckctl input[type=range]{flex:1 1 220px;accent-color:var(--card)}
+.deckctl .pos{color:var(--text);min-width:15ch}
+.cardstage{position:relative;padding:10px 6px 16px 14px}
+.cardstage::before,.cardstage::after{content:"";position:absolute;inset:16px 0 4px 26px;background:#d8cba6;border-radius:6px;transform:rotate(.6deg);z-index:0}
+.cardstage::after{inset:13px 2px 8px 20px;background:#e3d6b2;transform:rotate(-.4deg)}
+#card{position:relative;z-index:1;width:100%;aspect-ratio:7.375/3.25;display:block;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
+.cardline{font:14px var(--mono);color:var(--text);white-space:pre;overflow-x:auto;background:#10161d;border-radius:8px;padding:10px 12px}
+.cardline .para{color:var(--card)}
+.jumps{display:flex;flex-wrap:wrap;gap:8px}
+.jumps button{font:13px var(--mono);background:#10161d;border:1px solid var(--rule);color:var(--card);padding:6px 10px;border-radius:6px;cursor:pointer;text-align:left}
+.jumps button span{display:block;color:var(--muted);font-size:12px}
+
+/* ── NOTES ────────────────────────────────── */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+.cols h3{font:600 17px var(--sans);color:#fff;margin-bottom:6px}
+.cols p,.cols li{color:var(--muted);font-size:15px}
+.cols ul{padding-left:18px}
+.cols li{margin-bottom:6px}
+.cols b{color:var(--text);font-weight:500}
+.launch{margin-top:30px;border-left:3px solid var(--b);padding:4px 0 4px 16px;color:var(--muted);font-size:15px;max-width:72ch}
+footer{margin:60px 0 0;padding:26px 0 40px;border-top:1px solid var(--rule);font:13px var(--mono);color:var(--muted)}
+footer a{color:var(--muted)}
+
+@media (max-width:820px){
+  .screen{padding:18px 16px;min-height:0}
+  .g{grid-template-columns:1fr auto;gap:2px 12px;font-size:20px;padding:8px 0}
+  .g.head{display:none}
+  .g .strip{grid-column:1/-1}
+  .g .cls{font-size:18px}
+  .g .now{text-align:right}
+  .console{padding:10px;border-radius:16px}
+  .joblog{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cursor{animation:none}
+  .joblog{transition:none}
+  .paper pre .ln.new{animation:none}
+}
+</style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
+  <div class="top"><a href="https://brooksgroves.com">brooksgroves.com</a><a href="https://github.com/bdgroves/sierra-flow-cobol">source on GitHub</a></div>
 
-  <div class="header">
-    <div class="ascii-title">SIERRA&#8209;FLOW</div>
-    <div class="header-tagline">USGS Streamflow Data Processor &nbsp;·&nbsp; COBOL v2 &nbsp;·&nbsp; Sierra Nevada Watershed Analysis System</div>
-    <div class="status-bar">
-      <div class="s-item">LANGUAGE: <span class="v">GnuCOBOL 3.2</span></div>
-      <div class="s-item">STATIONS: <span class="v" id="hdr-stations">—</span></div>
-      <div class="s-item">RECORDS: <span class="v" id="hdr-records">—</span></div>
-      <div class="s-item">ALERTS: <span class="v warn" id="hdr-alerts">—</span></div>
-      <div class="s-item">DATA DATE: <span class="v" id="hdr-date">—</span></div>
-      <div class="s-item">PAGE LOADED: <span class="v" id="hdr-loaded">—</span></div>
-      <div class="s-item">STATUS: <span class="v" id="hdr-status">LOADING...</span><span class="cursor"></span></div>
+  <div class="console" aria-label="Operator console">
+    <div class="screen">
+      <h1>SIERRA&#8209;FLOW</h1>
+      <p class="sub">Eight Sierra Nevada river gages, run through a COBOL batch job every morning and checked against 30 years of normal for the date.</p>
+      <div class="status" id="status"><span>LOADING<span class="cursor"></span></span></div>
+      <div class="joblog" id="joblog" aria-label="Job log from the last run"></div>
+      <div class="gages" id="gages" aria-live="polite"></div>
+      <div class="legend" id="legend"></div>
     </div>
   </div>
 
-  <div class="artemis-banner">
-    <span class="label">⚡ LAUNCH DAY — 2026-04-01 &nbsp;|&nbsp; ARTEMIS II</span>
-    This program first ran on the same day four humans left Earth's orbit for the Moon — the first crewed lunar mission since Apollo 17 in 1972. SLS lifted off from Launch Complex 39B at 6:35 p.m. EDT. SIERRA-FLOW terminated normally at roughly the same hour.
-    <div class="crew">CREW: Reid Wiseman &nbsp;·&nbsp; Victor Glover &nbsp;·&nbsp; Christina Koch &nbsp;·&nbsp; Jeremy Hansen (CSA)</div>
-  </div>
+  <section>
+    <h2>The last 60 days</h2>
+    <p class="lede">Each river's daily mean flow against what that river normally does on those dates. The bright band is the middle half of 30 years (25th to 75th percentile); the faint band reaches the 10th and 90th. Flow is on a log scale, so a drought and a flood both fit.</p>
+    <div class="hydros" id="hydros"></div>
+  </section>
 
-  <div class="section">
-    <div class="section-label">Run Statistics</div>
-    <div class="stats-grid" id="stats-grid"><div class="loading"><span class="spinner"></span> Fetching USGS data...</div></div>
-  </div>
+  <section>
+    <h2>Where the gages are</h2>
+    <p class="lede">Three rivers out of Yosemite and the Stanislaus country. Four gages have no major dam above them and show what the mountains are doing; four sit below reservoirs, so their flow is mostly a release decision.</p>
+    <div id="map" role="region" aria-label="Map of the eight gages"></div>
+  </section>
 
-  <div class="section">
-    <div class="section-label">30-Day Flow — All Stations</div>
-    <div class="panel" id="sparklines-panel"><div class="loading"><span class="spinner"></span> Loading...</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-label">Section I — Station Statistics (sorted by mean CFS)</div>
-    <div class="panel" style="overflow-x:auto"><div id="station-table"><div class="loading"><span class="spinner"></span> Loading...</div></div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-label">Section II — Alert &amp; Percent-of-Normal Analysis</div>
-    <div class="panel" style="overflow-x:auto"><div id="alert-table"><div class="loading"><span class="spinner"></span> Loading...</div></div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-label">Section III — Watershed Basin Roll-Up</div>
-    <div class="basin-grid" id="basin-grid"><div class="loading"><span class="spinner"></span> Loading...</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-label">Build &amp; Run</div>
-    <div class="panel">
-      <div class="code-block">
-<span class="c"># Install GnuCOBOL</span>
-<span class="p">$</span> <span class="cmd">sudo apt install gnucobol</span>            <span class="c"># Ubuntu / WSL</span>
-<span class="p">$</span> <span class="cmd">brew install gnucobol</span>               <span class="c"># macOS</span>
-
-<span class="c"># Fetch live data + compile + run</span>
-<span class="p">$</span> <span class="cmd">python3 fetch_usgs.py</span>               <span class="c"># pulls 30 days from USGS API</span>
-<span class="p">$</span> <span class="cmd">cobc -x -o sierra-flow SIERRA-FLOW.cob</span>
-<span class="p">$</span> <span class="cmd">./sierra-flow && cat streamflow-report.txt</span>
-
-<span class="c"># GitHub Actions runs this automatically every morning at 7AM Pacific</span></div>
+  <section id="printout">
+    <h2>This morning's printout</h2>
+    <p class="lede">The report exactly as the COBOL program wrote it: 132 columns, the width of a line printer. Every number on this page comes from it or from the file the program wrote beside it.</p>
+    <div class="printer">
+      <span id="pinfo">streamflow-report.txt</span>
+      <span style="display:flex;gap:8px"><button class="btn" id="reprint">Print again</button><button class="btn" id="sound" aria-pressed="false">Printer sound: off</button></span>
+      <div class="slot"></div>
     </div>
-  </div>
+    <div class="paperwell"><div class="paper"><pre id="report" aria-label="COBOL report"></pre></div></div>
+    <p class="hint" id="phint"></p>
+  </section>
 
-  <div class="section">
-    <div class="section-label">About</div>
-    <div class="panel">
-      <div class="desc">
-        <p><strong>What if the Western Regional Technical Service Center ran their streamflow analysis in 1987 — and the code was still running today?</strong></p>
-        <p>SIERRA-FLOW is a COBOL program that reads live USGS discharge data, computes per-station statistics, flags threshold alerts, calculates percent-of-normal vs historical medians, determines 30-day flow trends, groups stations into watershed basins, and produces a formatted 132-column report. This page reads <code>streamflow.csv</code> — the same file COBOL processed — and renders everything live. Data updates every morning at 7AM Pacific via GitHub Actions. <strong>COBOL doesn't apologize.</strong></p>
+  <section id="deck">
+    <h2>The program, on punch cards</h2>
+    <p class="lede">Fixed-format COBOL still keeps the shape of an 80-column card: sequence numbers in columns 1–6, the indicator in 7, code in 8–72. Here is each line of the real source, punched in IBM 029 card code. <b id="deckcount"></b></p>
+    <div class="deck">
+      <div class="deckctl">
+        <button class="btn" id="prog" aria-pressed="false">SIERRA-FLOW.cob</button>
+        <button class="btn" id="prev" aria-label="Previous card">◀</button>
+        <input type="range" id="slider" min="1" max="1" value="1" aria-label="Card number">
+        <button class="btn" id="next" aria-label="Next card">▶</button>
+        <span class="pos" id="pos"></span>
+      </div>
+      <div class="cardstage"><canvas id="card" role="img" aria-label="Punch card"></canvas></div>
+      <div class="cardline" id="cardline"></div>
+      <div class="jumps" id="jumps"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <div class="cols">
+      <div>
+        <h3>Every morning</h3>
+        <p>A GitHub Action on Ubuntu installs GnuCOBOL, and a short Python script asks the USGS Water Data API for each gage's daily mean flow over the last 60 days. Then <b>SIERRA-FLOW.cob</b> compiles and runs: it compares each day with the normal for its date, sorts the gages with the COBOL <code>SORT</code> verb, writes the printout and a results file, and sets a return code: 0 when every gage reported, 4 when one is stale. The job log at the top of the page is that run's real output.</p>
+      </div>
+      <div>
+        <h3>What "normal" means</h3>
+        <p><b>NORMALS.cob</b> builds it from 30 water years of USGS daily means, 1996 to 2025. It releases every day's flow to the sort seven times, once for each day within three days of its date, sorts about 584,000 records, then takes the 10th, 25th, 50th, 75th and 90th percentiles for each gage and day. The classes are the ones USGS WaterWatch uses. Grand Canyon of the Tuolumne's record starts in 2006, so its normals cover 19 years.</p>
+      </div>
+      <div>
+        <h3>What changed in version 3</h3>
+        <ul>
+          <li>The old normals were one round number per gage for the whole year, so every river looked like a drought each fall. Each day now has its own.</li>
+          <li>After sorting, version 2 printed each station's median and alert thresholds against a different station.</li>
+          <li>The trend field couldn't hold a negative number, so no river could ever read falling.</li>
+          <li>The basin totals added up gages on the same river, counting the same water up to four times.</li>
+          <li>Each day's flow was the last reading of the day, not the day's mean.</li>
+          <li>The page used to recompute everything in JavaScript. It now shows what COBOL computed.</li>
+        </ul>
       </div>
     </div>
-  </div>
+    <p class="launch">Version 1 first ran on April 1, 2026, the evening Artemis II lifted off from Launch Complex 39B at 6:35 p.m. EDT with Reid Wiseman, Victor Glover, Christina Koch and Jeremy Hansen aboard, the first crew to leave Earth orbit since Apollo 17.</p>
+  </section>
 
-  <div class="section">
-    <div class="section-label">Related Projects</div>
-    <div class="panel">
-      <div class="desc">
-        <p><strong><a href="https://bdgroves.github.io/sierra-streamflow">Sierra Streamflow Monitor</a></strong> — Live dashboard, 8 USGS Sierra Nevada gages, Leaflet map, 20-year spaghetti charts.</p>
-        <p><strong><a href="https://bdgroves.github.io/EDGAR">EDGAR</a></strong> — Mariners/Rainiers baseball analytics. Nightly GitHub Actions updates.</p>
-        <p><strong><a href="https://bdgroves.github.io/ridgeline">RIDGELINE</a></strong> — Phoenix WUI search &amp; rescue. 86,168 incidents, 2019–2025.</p>
-        <p><strong><a href="https://brooksgroves.com">brooksgroves.com</a></strong> — Project hub.</p>
-      </div>
-    </div>
-  </div>
-
-  <hr class="div">
-  <div class="footer">
-    <div><a href="https://github.com/bdgroves/sierra-flow-cobol">github.com/bdgroves/sierra-flow-cobol</a> &nbsp;·&nbsp; <a href="https://brooksgroves.com">brooksgroves.com</a></div>
-    <div style="margin-top:.4rem;color:#004400;">COMPILED ON ARTEMIS II LAUNCH DAY &nbsp;·&nbsp; 2026-04-01 &nbsp;·&nbsp; NORMAL TERMINATION &nbsp;·&nbsp; RETURN CODE: 0</div>
-  </div>
-
+  <footer>
+    Data: <a href="https://waterdata.usgs.gov/">USGS Water Data</a>, daily means (provisional for recent days) and the latest 15-minute readings. Files: <a href="streamflow-report.txt">report</a> · <a href="results.csv">results.csv</a> · <a href="normals.csv">normals.csv</a> · <a href="job-log.txt">job log</a>. Code: <a href="https://github.com/bdgroves/sierra-flow-cobol">github.com/bdgroves/sierra-flow-cobol</a>. By <a href="https://brooksgroves.com">Brooks Groves</a>.
+  </footer>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const BASELINES = {
-  '11276500': { median:350,  low:50,   high:5000,  basin:'TUOLUMNE' },
-  '11274790': { median:900,  low:100,  high:8000,  basin:'TUOLUMNE' },
-  '11289650': { median:1200, low:100,  high:8000,  basin:'TUOLUMNE' },
-  '11290000': { median:1400, low:200,  high:10000, basin:'TUOLUMNE' },
-  '11266500': { median:800,  low:100,  high:6000,  basin:'MERCED'   },
-  '11264500': { median:450,  low:50,   high:4000,  basin:'MERCED'   },
-  '11303000': { median:600,  low:100,  high:6000,  basin:'STANISLAUS'},
-  '11284400': { median:8,    low:1,    high:100,   basin:'TUOLUMNE' },
-};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CLASSES=[['MUCH BELOW NORMAL','mb','< 10th percentile'],['BELOW NORMAL','b','10th–24th'],['NORMAL','n','25th–75th'],['ABOVE NORMAL','a','76th–90th'],['MUCH ABOVE NORMAL','ma','> 90th']];
+const CLS=Object.fromEntries(CLASSES.map(([k,c])=>[k,c]));
+const COL={mb:'#ff6a57',b:'#ffb547',n:'#5cff8a',a:'#5fd6ff',ma:'#7f9bff',nn:'#8b99a8'};
+const CUM=[0,31,60,91,121,152,182,213,244,274,305,335];
+const slotOf=d=>CUM[+d.slice(5,7)-1]+ +d.slice(8,10);
+const fmt=v=>v==null||isNaN(v)?'—':v>=100?Math.round(v).toLocaleString('en-US'):v>=10?v.toFixed(1):v.toFixed(2);
 
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const vals = line.split(',').map(v => v.trim());
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = vals[i] || '');
-    return obj;
-  });
+async function text(f){ const r=await fetch(f+'?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error(f+' '+r.status); return r.text(); }
+function csv(t){ const L=t.trim().split(/\r?\n/), h=L[0].split(','); return L.slice(1).map(l=>{ const v=l.split(','), o={}; h.forEach((k,i)=>o[k]=v[i]??''); return o; }); }
+
+const D={};
+async function load(){
+  const files=['results.csv','sites.csv','streamflow.csv','normals.csv','streamflow-report.txt','job-log.txt','SIERRA-FLOW.cob','NORMALS.cob'];
+  const got=await Promise.all(files.map(f=>text(f).catch(e=>{console.warn(e);return null;})));
+  const [res,sites,flow,norm,report,log,src1,src2]=got;
+  D.sites=sites?csv(sites):[]; D.byId=Object.fromEntries(D.sites.map(s=>[s.site_id,s]));
+  D.res=res?csv(res):[]; D.flow=flow?csv(flow):[]; D.report=report; D.log=log; D.src={'SIERRA-FLOW.cob':src1,'NORMALS.cob':src2};
+  D.norm={}; if(norm) for(const r of csv(norm)) (D.norm[r.site_id]??={})[+r.slot]=r;
+  console_(); hydros(); map(); printout(); deck(); live();
 }
 
-function computeStats(rows) {
-  const stations = {};
-  for (const row of rows) {
-    const id = row.site_id, name = row.site_name;
-    const cfs = parseFloat(row.discharge_cfs), date = row.measurement_date;
-    if (!id || isNaN(cfs)) continue;
-    if (!stations[id]) {
-      stations[id] = { id, name, sum:0, count:0, min:Infinity, max:-Infinity,
-        lastDate:'', lastVal:0, prevVal:null, trendSum:0, trendCount:0,
-        alerts:0, history:[], baseline: BASELINES[id] || {median:1,low:50,high:5000,basin:'OTHER'} };
-    }
-    const s = stations[id];
-    s.sum += cfs; s.count++;
-    if (cfs < s.min) s.min = cfs;
-    if (cfs > s.max) s.max = cfs;
-    if (date >= s.lastDate) { s.lastDate = date; s.lastVal = cfs; }
-    if (s.prevVal !== null) { s.trendSum += cfs - s.prevVal; s.trendCount++; }
-    s.prevVal = cfs;
-    if (cfs < s.baseline.low || cfs > s.baseline.high) s.alerts++;
-    s.history.push({date, cfs});
-  }
-  for (const s of Object.values(stations)) {
-    s.mean = s.sum / s.count;
-    s.pctNormal = s.baseline.median > 0 ? (s.mean / s.baseline.median) * 100 : 0;
-    const avg = s.trendCount > 0 ? s.trendSum / s.trendCount : 0;
-    s.trend = avg > 50 ? 'RISING' : avg < -50 ? 'FALLING' : 'STABLE';
-    s.history.sort((a,b) => a.date.localeCompare(b.date));
-  }
-  return Object.values(stations).sort((a,b) => b.mean - a.mean);
+/* ── CONSOLE ── */
+function where(v,r){
+  const k=[[10,+r.p10],[25,+r.p25],[50,+r.p50],[75,+r.p75],[90,+r.p90]];
+  if(isNaN(v)) return null;
+  const eq=k.filter(([,x])=>x===v); if(eq.length) return (eq[0][0]+eq[eq.length-1][0])/2;
+  if(v<k[0][1]) return k[0][1]>0? 10*v/k[0][1] : 0;
+  for(let i=0;i<4;i++){ const [pa,a]=k[i],[pb,b]=k[i+1]; if(v<=b) return pa+(pb-pa)*(v-a)/((b-a)||1); }
+  return 90+10*Math.min(1,(v-k[4][1])/(k[4][1]||1));
+}
+function strip(r){
+  const p=where(+r.last_cfs,r);
+  const seg=[[10,'mb'],[15,'b'],[50,'n'],[15,'a'],[10,'ma']].map(([w,c])=>`<i style="width:${w}%;background:${COL[c]}"></i>`).join('');
+  return `<div class="strip" title="Where today sits among 30 years of this date">${seg}${p==null?'':`<span class="mk" style="left:${p}%"></span>`}</div>`;
+}
+function console_(){
+  const R=D.res, rc=R.length?+R[0].rc:NaN, run=R[0];
+  const logLines=(D.log||'').split('\n');
+  const ended=logLines.find(l=>l.startsWith('JOB SIERRAFL   ENDED'))||'';
+  const maxcc=(ended.match(/MAXCC=(\d+)/)||[])[1], secs=(ended.match(/([\d.]+)s\s*$/)||[])[1];
+  const runAt=run?new Date(`${run.run_date}T${run.run_time}Z`):null;
+  const last=R.map(r=>r.last_date).filter(Boolean).sort().pop();
+  $('status').innerHTML=R.length?[
+    `<span>JOB SIERRAFL</span><b class="${maxcc&&+maxcc>0?'warn':''}">MAXCC=${maxcc??'—'}</b>`,
+    `<span>RAN</span><b>${runAt?runAt.toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'—'}</b>`,
+    secs?`<span>IN</span><b>${secs} S</b>`:'',
+    `<span>DATA THROUGH</span><b>${last||'—'}</b>`,
+    `<button class="btn" id="showlog" aria-expanded="false" style="font:20px var(--crt);color:var(--phos);border-color:rgba(92,255,138,.4)">JOB LOG</button>`].join(' ')
+    :`<b class="warn">COULD NOT READ results.csv. THE PAGE NEEDS A WEB SERVER: python3 -m http.server</b>`;
+  const jl=$('joblog'); jl.textContent=D.log||'';
+  const btn=$('showlog'); if(btn) btn.onclick=()=>{ const o=jl.classList.toggle('open'); btn.setAttribute('aria-expanded',o); };
+  $('legend').innerHTML=CLASSES.map(([k,c,t])=>`<span><i style="background:${COL[c]}"></i>${k.toLowerCase()} <span style="opacity:.7">(${t})</span></span>`).join('');
+  const rows=R.map(r=>{ const s=D.byId[r.site_id]||{}, c=CLS[r.class]||'nn';
+    return `<div class="g"><div class="nm">${esc(s.short_name||r.site_id)}<small>${esc(r.site_id)} · ${s.regulation==='REGULATED'?'below a dam':'no major dam'}</small></div>
+      <div class="cfs">${fmt(+r.last_cfs)}<small style="display:block;color:var(--phos-dim);font-size:16px">CFS ${esc(r.last_date.slice(5))}</small></div>
+      ${r.p50?strip(r):'<div></div>'}
+      <div class="cls c-${c}">${esc(r.class)}${r.stale==='Y'?' <span class="warn">STALE</span>':''}<small style="display:block;color:var(--phos-dim);font-size:16px">${r.pct_median?r.pct_median+'% OF MEDIAN':'MEDIAN '+fmt(+r.p50)+' CFS'}</small></div>
+      <div class="now" id="now-${r.site_id}">NOW …</div></div>`; });
+  const head=`<div class="g head"><div>GAGE</div><div class="cfs">DAILY MEAN</div><div>AMONG 30 YEARS OF THIS DATE</div><div>CLASS</div><div>LIVE (USGS)</div></div>`;
+  const G=$('gages');
+  if(REDUCED){ G.innerHTML=head+rows.join(''); return; }
+  G.innerHTML=head; let i=0;
+  const t=setInterval(()=>{ if(i>=rows.length){clearInterval(t);return;} G.insertAdjacentHTML('beforeend',rows[i++]); },90);
 }
 
-function computeBasins(stations) {
-  const basins = {};
-  for (const s of stations) {
-    const b = s.baseline.basin;
-    if (!basins[b]) basins[b] = {name:b, total:0, count:0};
-    basins[b].total += s.mean; basins[b].count++;
-  }
-  return Object.values(basins).sort((a,b) => b.total - a.total);
-}
-
-function badge(s) {
-  const p = s.pctNormal;
-  if (s.mean > s.baseline.high) return '<span class="badge badge-high">★ HIGH FLOW</span>';
-  if (s.mean < s.baseline.low)  return '<span class="badge badge-low">▼ LOW FLOW</span>';
-  if (p > 200) return '<span class="badge badge-above">▲ ABOVE NORMAL</span>';
-  if (p <  50) return '<span class="badge badge-below">▼ BELOW NORMAL</span>';
-  return '<span class="badge badge-ok">NORMAL</span>';
-}
-
-function trend(t) {
-  if (t==='RISING')  return '<span class="trend-rising">▲ RISING</span>';
-  if (t==='FALLING') return '<span class="trend-falling">▼ FALLING</span>';
-  return '<span class="trend-stable">─ STABLE</span>';
-}
-
-function fmt(n, d=2) { return n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
-
-function drawSpark(canvas, history, color) {
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth || 200, H = canvas.height;
-  canvas.width = W;
-  const vals = history.map(h => h.cfs);
-  const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
-  const pts = vals.map((v,i) => ({
-    x: (i/(vals.length-1))*W,
-    y: H - ((v-mn)/rng)*(H-4) - 2
+/* live 15-minute readings from USGS, in the browser */
+async function live(){
+  const A='https://api.waterdata.usgs.gov/ogcapi/v0/collections/latest-continuous/items';
+  await Promise.all(D.res.map(async r=>{
+    const el=$('now-'+r.site_id); if(!el) return;
+    try{
+      const c=new AbortController(); setTimeout(()=>c.abort(),15000);
+      const j=await (await fetch(`${A}?f=json&monitoring_location_id=USGS-${r.site_id}&parameter_code=00060&limit=5`,{signal:c.signal})).json();
+      const f=(j.features||[]).map(x=>x.properties).find(p=>p.parameter_code==='00060');
+      if(!f) throw 0;
+      const t=new Date(f.time);
+      el.innerHTML=`${fmt(+f.value)} CFS<br><span style="font-size:16px">${t.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'})} ${Date.now()-t>6*3600e3?'(OLD)':''}</span>`;
+    }catch(e){ el.textContent='NOW —'; el.title='USGS did not answer'; }
   }));
-  ctx.clearRect(0,0,W,H);
-  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
-  const last = pts[pts.length-1];
-  ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI*2);
-  ctx.fillStyle = color; ctx.fill();
 }
 
-function render(stations) {
-  const totalRecords = stations.reduce((a,s) => a+s.count, 0);
-  const totalAlerts  = stations.reduce((a,s) => a+s.alerts, 0);
-  const latestDate   = stations.reduce((a,s) => s.lastDate>a?s.lastDate:a, '');
-  const basins = computeBasins(stations);
-  const now = new Date(), pad = n => String(n).padStart(2,'0');
-
-  document.getElementById('hdr-stations').textContent = stations.length;
-  document.getElementById('hdr-records').textContent  = totalRecords;
-  document.getElementById('hdr-alerts').textContent   = totalAlerts;
-  document.getElementById('hdr-date').textContent     = latestDate;
-  document.getElementById('hdr-status').textContent   = 'NORMAL TERMINATION';
-  document.getElementById('hdr-loaded').textContent   =
-    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><span class="stat-num">${stations.length}</span><div class="stat-label">Stations</div></div>
-    <div class="stat-card"><span class="stat-num">${totalRecords}</span><div class="stat-label">Records Read</div></div>
-    <div class="stat-card"><span class="stat-num">0</span><div class="stat-label">Records Skipped</div></div>
-    <div class="stat-card"><span class="stat-num ${totalAlerts>0?'warn':''}">${totalAlerts}</span><div class="stat-label">Threshold Alerts</div></div>`;
-
-  document.getElementById('sparklines-panel').innerHTML = stations.map(s =>
-    `<div class="sparkline-row">
-       <div class="spark-name">${s.name}</div>
-       <canvas class="spark-canvas" data-id="${s.id}" height="32"></canvas>
-       <div class="spark-val">${fmt(s.lastVal,0)} cfs</div>
-     </div>`).join('');
-
-  requestAnimationFrame(() => {
-    stations.forEach(s => {
-      const c = document.querySelector(`canvas[data-id="${s.id}"]`);
-      if (c && s.history.length > 1) {
-        const col = s.trend==='RISING'?'#00ff41':s.trend==='FALLING'?'#ffb300':'#00a827';
-        drawSpark(c, s.history, col);
-      }
-    });
-  });
-
-  document.getElementById('station-table').innerHTML = `
-    <table class="tbl"><thead><tr>
-      <th>SITE ID</th><th>STATION NAME</th><th>REC</th><th>MEAN CFS</th>
-      <th>MIN CFS</th><th>MAX CFS</th><th>% NORMAL</th><th>TREND</th>
-      <th>ALERTS</th><th>LAST DATE</th><th>LAST CFS</th>
-    </tr></thead><tbody>
-    ${stations.map(s => `<tr>
-      <td>${s.id}</td><td>${s.name}</td><td>${s.count}</td>
-      <td>${fmt(s.mean)}</td><td>${fmt(s.min)}</td><td>${fmt(s.max)}</td>
-      <td>${fmt(s.pctNormal,1)}%</td><td>${trend(s.trend)}</td>
-      <td>${s.alerts}</td><td>${s.lastDate}</td><td>${fmt(s.lastVal)}</td>
-    </tr>`).join('')}
-    </tbody></table>`;
-
-  document.getElementById('alert-table').innerHTML = `
-    <table class="tbl"><thead><tr>
-      <th>SITE ID</th><th>STATION NAME</th><th>MEAN CFS</th>
-      <th>MEDIAN CFS</th><th>% NORMAL</th><th>ALERT STATUS</th>
-    </tr></thead><tbody>
-    ${stations.map(s => `<tr>
-      <td>${s.id}</td><td>${s.name}</td><td>${fmt(s.mean)}</td>
-      <td>${fmt(s.baseline.median)}</td><td>${fmt(s.pctNormal,1)}%</td>
-      <td>${badge(s)}</td>
-    </tr>`).join('')}
-    </tbody></table>`;
-
-  document.getElementById('basin-grid').innerHTML = basins.map(b => `
-    <div class="basin-card">
-      <div class="basin-name">${b.name}</div>
-      <div class="basin-total">
-        <span>${b.count}</span> station${b.count!==1?'s':''} &nbsp;·&nbsp;
-        <span>${fmt(b.total,0)}</span> CFS total mean
-      </div>
-    </div>`).join('');
+/* ── HYDROGRAPHS ── */
+function hydros(){
+  const by={}; for(const r of D.flow) (by[r.site_id]??=[]).push({d:r.date,v:+r.cfs});
+  $('hydros').innerHTML=D.res.map(r=>{ const s=D.byId[r.site_id]||{}, c=CLS[r.class]||'nn';
+    return `<div class="hy"><h3><span>${esc(s.short_name||r.site_id)}</span><em class="c-${c}">${fmt(+r.last_cfs)} cfs</em></h3><canvas data-id="${r.site_id}" aria-label="60-day hydrograph, ${esc(s.short_name)}"></canvas><p>${r.trend==='STEADY'?'steady':r.trend.toLowerCase()+' '+(r.trend_pct>0?'+':'')+r.trend_pct+'%'} over the last week · last 30 days ${r.pct_normal_30?r.pct_normal_30+'% of normal':'—'}</p></div>`; }).join('');
+  const draw=()=>document.querySelectorAll('.hy canvas').forEach(cv=>chart(cv,by[cv.dataset.id]||[],D.norm[cv.dataset.id]||{}));
+  draw(); let to; addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
+}
+function chart(cv,pts,N){
+  const dpr=devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight; cv.width=W*dpr; cv.height=H*dpr;
+  const x=cv.getContext('2d'); x.scale(dpr,dpr); if(!pts.length) return;
+  const nn=pts.map(p=>N[slotOf(p.d)]||{});
+  const all=[...pts.map(p=>p.v),...nn.flatMap(n=>[+n.p10,+n.p90])].filter(v=>v>0);
+  const FLOOR=Math.max(0.1,Math.min(...all,1e9)*.7), TOP=Math.max(FLOOR*10,Math.max(...all,0)*1.3);
+  const L=Math.log10, padL=34, padB=16, w=W-padL-4, h=H-padB-4;
+  const X=i=>padL+i*w/(pts.length-1||1), Y=v=>4+h-(L(Math.max(v,FLOOR))-L(FLOOR))/(L(TOP)-L(FLOOR))*h;
+  const band=(lo,hi,fill)=>{ x.beginPath(); nn.forEach((n,i)=>x.lineTo(X(i),Y(+n[hi]))); for(let i=nn.length-1;i>=0;i--) x.lineTo(X(i),Y(+nn[i][lo])); x.closePath(); x.fillStyle=fill; x.fill(); };
+  x.font='14px VT323'; x.fillStyle='#2f9e57'; x.strokeStyle='rgba(92,255,138,.12)'; x.lineWidth=1;
+  for(let e=Math.ceil(L(FLOOR));e<=Math.floor(L(TOP));e++){ const y=Y(10**e); x.beginPath(); x.moveTo(padL,y); x.lineTo(W-4,y); x.stroke(); x.fillText(10**e>=1?(10**e).toLocaleString('en-US'):String(10**e),2,y+4); }
+  if(nn.some(n=>n.p50)){ band('p10','p90','rgba(92,255,138,.08)'); band('p25','p75','rgba(92,255,138,.2)');
+    x.setLineDash([3,3]); x.strokeStyle='rgba(92,255,138,.5)'; x.beginPath(); nn.forEach((n,i)=>x.lineTo(X(i),Y(+n.p50))); x.stroke(); x.setLineDash([]); }
+  x.strokeStyle='#5cff8a'; x.lineWidth=1.8; x.shadowColor='#5cff8a'; x.shadowBlur=6; x.beginPath(); pts.forEach((p,i)=>x.lineTo(X(i),Y(p.v))); x.stroke();
+  x.shadowBlur=10; x.fillStyle='#fff'; x.beginPath(); x.arc(X(pts.length-1),Y(pts.at(-1).v),2.6,0,7); x.fill(); x.shadowBlur=0;
+  x.fillStyle='#2f9e57'; const md=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  x.fillText(md(pts[0].d),padL,H-2); const e=md(pts.at(-1).d); x.fillText(e,W-4-x.measureText(e).width,H-2);
+  if(Math.max(...pts.map(p=>p.v))<=0) { x.fillStyle='#5cff8a'; x.fillText('DRY: 0 CFS EVERY DAY',padL+8,Y(FLOOR)-8); }
 }
 
-async function init() {
-  try {
-    const resp = await fetch('streamflow.csv?_='+Date.now());
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const text = await resp.text();
-    const rows = parseCSV(text);
-    if (!rows.length) throw new Error('No data rows');
-    render(computeStats(rows));
-  } catch(err) {
-    document.getElementById('hdr-status').textContent = 'FETCH ERROR';
-    const msg = `<div class="error-msg">ERROR: Could not load streamflow.csv — ${err.message}<br>
-      Requires a web server. Run: <code>python -m http.server 8000</code></div>`;
-    ['stats-grid','sparklines-panel','station-table','alert-table','basin-grid']
-      .forEach(id => { document.getElementById(id).innerHTML = msg; });
-  }
+/* ── MAP ── */
+function map(){
+  if(!window.L) return;
+  const m=L.map('map',{scrollWheelZoom:false,attributionControl:true}).setView([37.8,-120.3],8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:13,attribution:'Esri, HERE, Garmin, © OpenStreetMap'}).addTo(m);
+  const pts=[];
+  for(const r of D.res){ const s=D.byId[r.site_id]; if(!s) continue; const c=COL[CLS[r.class]||'nn'];
+    pts.push([+s.lat,+s.lon]);
+    L.circleMarker([+s.lat,+s.lon],{radius:8,color:c,weight:2,fillColor:c,fillOpacity:.45}).bindPopup(`<b>${esc(s.short_name)}</b><br>${esc(s.usgs_name)}<br>${fmt(+r.last_cfs)} cfs on ${esc(r.last_date)}: ${esc(r.class.toLowerCase())}<br>${s.regulation==='REGULATED'?'Below a dam':'No major dam upstream'} · ${esc(s.drain_sqmi)} sq mi drainage<br><a href="https://waterdata.usgs.gov/monitoring-location/USGS-${s.site_id}/" target="_blank" rel="noopener">USGS page</a>`)
+      .bindTooltip(esc(s.short_name),{direction:'right',offset:[8,0]}).addTo(m); }
+  if(pts.length) m.fitBounds(pts,{padding:[30,30]});
 }
-init();
+
+/* ── PRINTOUT ── */
+let printing=false, sound=false, actx=null;
+function chatter(){ if(!sound) return; try{ actx??=new AudioContext(); const n=actx.createBufferSource(), b=actx.createBuffer(1,actx.sampleRate*.035,actx.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3)*.35; n.buffer=b; const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; n.connect(f).connect(actx.destination); n.start(); }catch(e){} }
+function printout(){
+  const lines=(D.report||'streamflow-report.txt could not be read.').replace(/\s+$/,'').split('\n');
+  const pre=$('report');
+  const r=D.res[0]; $('pinfo').textContent=r?`streamflow-report.txt · ${lines.length} lines · run ${r.run_date} ${r.run_time} UTC`:'streamflow-report.txt';
+  $('phint').textContent=innerWidth<900?'The paper is 132 columns wide: scroll it sideways.':'';
+  const all=()=>{ pre.innerHTML=lines.map(l=>`<span class="ln">${esc(l)||' '}</span>`).join(''); };
+  const run=()=>{ if(printing) return; if(REDUCED){ all(); return; } printing=true; pre.innerHTML=''; let i=0;
+    const t=setInterval(()=>{ for(let k=0;k<2&&i<lines.length;k++){ pre.insertAdjacentHTML('beforeend',`<span class="ln new">${esc(lines[i++])||' '}</span>`); } chatter();
+      if(i>=lines.length){ clearInterval(t); printing=false; } },45); };
+  pre.innerHTML=lines.map(()=>'<span class="ln"> </span>').join('');
+  new IntersectionObserver((e,o)=>{ if(e[0].isIntersecting){ run(); o.disconnect(); } },{threshold:.15}).observe(pre);
+  $('reprint').onclick=run;
+  $('sound').onclick=e=>{ sound=!sound; e.target.setAttribute('aria-pressed',sound); e.target.textContent='Printer sound: '+(sound?'on':'off'); if(sound) chatter(); };
+}
+
+/* ── PUNCH CARDS: IBM 029 / EBCDIC card code ── */
+const PUNCH=(()=>{ const m={' ':[]};
+  for(let d=0;d<=9;d++) m[d]=[String(d)];
+  'ABCDEFGHI'.split('').forEach((c,i)=>m[c]=['12',String(i+1)]);
+  'JKLMNOPQR'.split('').forEach((c,i)=>m[c]=['11',String(i+1)]);
+  'STUVWXYZ'.split('').forEach((c,i)=>m[c]=['0',String(i+2)]);
+  'abcdefghi'.split('').forEach((c,i)=>m[c]=['12','0',String(i+1)]);
+  'jklmnopqr'.split('').forEach((c,i)=>m[c]=['12','11',String(i+1)]);
+  'stuvwxyz'.split('').forEach((c,i)=>m[c]=['11','0',String(i+2)]);
+  Object.assign(m,{'&':['12'],'-':['11'],'/':['0','1'],'.':['12','3','8'],'<':['12','4','8'],'(':['12','5','8'],'+':['12','6','8'],'|':['12','7','8'],
+    '!':['11','2','8'],'$':['11','3','8'],'*':['11','4','8'],')':['11','5','8'],';':['11','6','8'],'¬':['11','7','8'],
+    ',':['0','3','8'],'%':['0','4','8'],'_':['0','5','8'],'>':['0','6','8'],'?':['0','7','8'],
+    ':':['2','8'],'#':['3','8'],'@':['4','8'],"'":['5','8'],'=':['6','8'],'"':['7','8']});
+  return m; })();
+const ROWS=['12','11','0','1','2','3','4','5','6','7','8','9'];
+let prog='SIERRA-FLOW.cob', cards=[], cur=0;
+function deck(){
+  const set=p=>{ prog=p; cards=(D.src[p]||'').replace(/\s+$/,'').split('\n'); $('slider').max=cards.length; $('prog').textContent=p;
+    $('deckcount').textContent=D.src['SIERRA-FLOW.cob']&&D.src['NORMALS.cob']?`SIERRA-FLOW is ${D.src['SIERRA-FLOW.cob'].trim().split('\n').length} cards and NORMALS ${D.src['NORMALS.cob'].trim().split('\n').length}; a box of blank cards held 2,000.`:''; jumps(); go(0); };
+  $('prog').onclick=()=>set(prog==='SIERRA-FLOW.cob'?'NORMALS.cob':'SIERRA-FLOW.cob');
+  $('prev').onclick=()=>go(cur-1); $('next').onclick=()=>go(cur+1);
+  $('slider').oninput=e=>go(+e.target.value-1);
+  $('deck').addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT') return; if(e.key==='ArrowRight'){go(cur+1);e.preventDefault();} if(e.key==='ArrowLeft'){go(cur-1);e.preventDefault();} });
+  addEventListener('resize',()=>drawCard(cards[cur]||''));
+  set('SIERRA-FLOW.cob');
+  const start=cards.findIndex(l=>/^       4100-CLASSIFY\./.test(l)); if(start>0) go(start+1);
+}
+function paraAt(i){ for(let k=i;k>=0;k--){ const m=cards[k].match(/^       ([0-9A-Z][0-9A-Z-]*)\.\s*$/); if(m) return m[1]; } return ''; }
+function go(i){
+  if(!cards.length) return; cur=Math.max(0,Math.min(cards.length-1,i)); $('slider').value=cur+1;
+  const line=cards[cur]; drawCard(line);
+  $('pos').textContent=`card ${String(cur+1).padStart(4,'0')} of ${String(cards.length).padStart(4,'0')}`;
+  const p=paraAt(cur);
+  $('cardline').innerHTML=`${esc(line.padEnd(80).slice(0,80))}\n${'1234567890'.repeat(8)}\n<span class="para">${esc(prog)}${p?' · paragraph '+esc(p):''}</span>`;
+}
+function jumps(){
+  const T=prog==='SIERRA-FLOW.cob'?[['4100-CLASSIFY','the class: today against the percentiles'],['4000-ANALYZE-GAGE','30 days, percent of normal, the trend'],['5000-SORT-GAGES','the SORT verb'],['6200-SECTION-I','printing section I']]
+    :[['1000-RELEASE-WINDOWS','each day released seven times'],['2000-BUILD-PERCENTILES','reading the sorted groups'],['2300-PERCENTILE','the percentile arithmetic']];
+  $('jumps').innerHTML=T.map(([p,w])=>{ const i=cards.findIndex(l=>l.trim()===p+'.'); return i<0?'':`<button data-i="${i}">${p}<span>${w}</span></button>`; }).join('');
+  $('jumps').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+}
+function drawCard(line){
+  const cv=$('card'), dpr=devicePixelRatio||1, W=cv.clientWidth, H=W*3.25/7.375; cv.width=W*dpr; cv.height=H*dpr;
+  const x=cv.getContext('2d'); x.scale(dpr,dpr); const u=W/7.375;
+  x.fillStyle='#efe2bf'; x.beginPath(); x.moveTo(.25*u,0); x.lineTo(W-6,0); x.quadraticCurveTo(W,0,W,6); x.lineTo(W,H-6); x.quadraticCurveTo(W,H,W-6,H); x.lineTo(6,H); x.quadraticCurveTo(0,H,0,H-6); x.lineTo(0,.42*u); x.closePath(); x.fill();
+  const colX=c=>.25*u+c*.087*u, rowY=r=>.25*u+r*.25*u;
+  x.textAlign='center'; x.textBaseline='middle';
+  x.fillStyle='rgba(140,110,60,.55)'; x.font=`${Math.max(5,.075*u)}px "IBM Plex Mono"`;
+  for(let r=2;r<12;r++) for(let c=0;c<80;c++) x.fillText(ROWS[r],colX(c)+.0435*u,rowY(r));
+  x.fillStyle='rgba(140,110,60,.7)'; x.font=`${Math.max(4,.05*u)}px "IBM Plex Mono"`;
+  for(let c=0;c<80;c+=1) if((c+1)%5===0||c===0){ x.fillText(String(c+1),colX(c)+.0435*u,rowY(2)+.13*u); x.fillText(String(c+1),colX(c)+.0435*u,H-.08*u); }
+  x.strokeStyle='rgba(140,110,60,.35)'; x.lineWidth=1;
+  [[0,6],[6,7],[7,11],[11,72],[72,80]].forEach(([a])=>{ if(a){ x.beginPath(); x.moveTo(colX(a),rowY(2)-.12*u); x.lineTo(colX(a),H-.15*u); x.stroke(); } });
+  const chars=line.padEnd(80).slice(0,80).split('');
+  x.fillStyle='#3d3222'; x.font=`600 ${Math.max(6,.085*u)}px "IBM Plex Mono"`;
+  chars.forEach((ch,c)=>{ if(ch!==' ') x.fillText(ch,colX(c)+.0435*u,.1*u); });
+  x.fillStyle='#18202a';
+  chars.forEach((ch,c)=>{ const p=PUNCH[ch]||PUNCH[ch.toUpperCase()]||[]; p.forEach(r=>{ const ri=ROWS.indexOf(r); x.fillRect(colX(c)+.016*u,rowY(ri)-.0625*u,.055*u,.125*u); }); });
+}
+load();
 </script>
 </body>
 </html>
