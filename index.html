@@ -300,24 +300,26 @@ function console_(){
       <div class="now" id="now-${r.site_id}">NOW …</div></div>`; });
   const head=`<div class="g head"><div>GAGE</div><div class="cfs">DAILY MEAN</div><div>AMONG 30 YEARS OF THIS DATE</div><div>CLASS</div><div>LIVE (USGS)</div></div>`;
   const G=$('gages');
-  if(REDUCED){ G.innerHTML=head+rows.join(''); return; }
+  if(REDUCED){ G.innerHTML=head+rows.join(''); applyNow(); return; }
   G.innerHTML=head; let i=0;
-  const t=setInterval(()=>{ if(i>=rows.length){clearInterval(t);return;} G.insertAdjacentHTML('beforeend',rows[i++]); },90);
+  const t=setInterval(()=>{ if(i>=rows.length){clearInterval(t);applyNow();return;} G.insertAdjacentHTML('beforeend',rows[i++]); },90);
 }
 
 /* live 15-minute readings from USGS, in the browser */
+const NOW={};
+function applyNow(){ for(const [id,h] of Object.entries(NOW)){ const el=$('now-'+id); if(el) el.innerHTML=h; } }
 async function live(){
   const A='https://api.waterdata.usgs.gov/ogcapi/v0/collections/latest-continuous/items';
   await Promise.all(D.res.map(async r=>{
-    const el=$('now-'+r.site_id); if(!el) return;
     try{
       const c=new AbortController(); setTimeout(()=>c.abort(),15000);
       const j=await (await fetch(`${A}?f=json&monitoring_location_id=USGS-${r.site_id}&parameter_code=00060&limit=5`,{signal:c.signal})).json();
       const f=(j.features||[]).map(x=>x.properties).find(p=>p.parameter_code==='00060');
       if(!f) throw 0;
       const t=new Date(f.time);
-      el.innerHTML=`${fmt(+f.value)} CFS<br><span style="font-size:16px">${t.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'})} ${Date.now()-t>6*3600e3?'(OLD)':''}</span>`;
-    }catch(e){ el.textContent='NOW —'; el.title='USGS did not answer'; }
+      NOW[r.site_id]=`NOW ${fmt(+f.value)} CFS<br><span style="font-size:16px">${t.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'})} PT${Date.now()-t>6*3600e3?' (OLD)':''}</span>`;
+    }catch(e){ NOW[r.site_id]='<span title="USGS did not answer">NOW —</span>'; }
+    applyNow();
   }));
 }
 
