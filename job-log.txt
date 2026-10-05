@@ -1,25 +1,25 @@
-JOB SIERRAFL   2026-10-04 18:09:31 UTC
+JOB SIERRAFL   2026-10-05 22:00:36 UTC
 HOST           Linux x86_64 · cobc (GnuCOBOL) 3.1.2.0 · Python 3.12.3
-RUN            GitHub Actions run 203 (schedule)
+RUN            GitHub Actions run 204 (schedule)
 
-STEP FETCH      RC=0000    3.08s  python3 fetch_usgs.py
-    SIERRA-FLOW USGS FETCH  2026-10-04 18:09 UTC
-      11274790  Tuolumne R Grand Canyon      60 days, last 2026-10-03
-      11276500  Tuolumne R nr Hetch Hetchy   60 days, last 2026-10-03
-      11284400  Big Creek nr Groveland       60 days, last 2026-10-03
-      11289650  Tuolumne R bl La Grange      60 days, last 2026-10-03
-      11290000  Tuolumne R at Modesto        60 days, last 2026-10-03
-      11264500  Merced R at Happy Isles      60 days, last 2026-10-03
-      11266500  Merced R at Pohono Bridge    60 days, last 2026-10-03
-      11303000  Stanislaus R at Ripon        60 days, last 2026-10-03
+STEP FETCH      RC=0000    2.43s  python3 fetch_usgs.py
+    SIERRA-FLOW USGS FETCH  2026-10-05 22:00 UTC
+      11274790  Tuolumne R Grand Canyon      60 days, last 2026-10-04
+      11276500  Tuolumne R nr Hetch Hetchy   60 days, last 2026-10-04
+      11284400  Big Creek nr Groveland       60 days, last 2026-10-04
+      11289650  Tuolumne R bl La Grange      60 days, last 2026-10-04
+      11290000  Tuolumne R at Modesto        60 days, last 2026-10-04
+      11264500  Merced R at Happy Isles      60 days, last 2026-10-04
+      11266500  Merced R at Pohono Bridge    60 days, last 2026-10-04
+      11303000  Stanislaus R at Ripon        60 days, last 2026-10-04
     Wrote 480 daily means to streamflow.csv
 
-STEP COMPILE    RC=0000    0.36s  cobc -x -o sierra-flow SIERRA-FLOW.cob
+STEP COMPILE    RC=0000    1.99s  cobc -x -o sierra-flow SIERRA-FLOW.cob
 
 STEP NORMALS    skipped: normals.csv is current (see normals-log.txt)
 
-STEP SIERRAFL   RC=0000    0.01s  ./sierra-flow
-    SFLW000I SIERRA-FLOW V3.0 STARTED 2026-10-04 18:09:35 UTC
+STEP SIERRAFL   RC=0000    0.03s  ./sierra-flow
+    SFLW000I SIERRA-FLOW V3.0 STARTED 2026-10-05 22:00:41 UTC
     SFLW001I GAGES LOADED ..............     8
     SFLW002I DAILY NORMALS LOADED ......  2928
     SFLW003I DAILY MEANS LOADED ........   480
@@ -29,4 +29,4 @@ STEP SIERRAFL   RC=0000    0.01s  ./sierra-flow
     SFLW007I RESULTS WRITTEN: results.csv
     SFLW999I SIERRA-FLOW ENDED  RC= 0
 
-JOB SIERRAFL   ENDED  MAXCC=0000  3.5s
+JOB SIERRAFL   ENDED  MAXCC=0000  4.6s
