@@ -2,7 +2,7 @@
 
                                               SIERRA NEVADA WATERSHED ANALYSIS SYSTEM
                                             USGS STREAMFLOW DATA PROCESSING REPORT  V3.0
-                                                  RUN 2026-10-16 18:03:25 UTC
+                                                  RUN 2026-10-17 17:09:41 UTC
 
 ====================================================================================================================================
 
@@ -11,37 +11,37 @@ SECTION I: LATEST DAILY MEAN VS NORMAL FOR THE DATE
 
   SITE ID  STATION                    DATE             CFS      P10      P25   MEDIAN      P75      P90    % MED  CLASS
 ------------------------------------------------------------------------------------------------------------------------------------
-  11274790 Tuolumne R Grand Canyon    2026-10-15      8.25     7.49    11.10    14.00    41.13   218.10    58.9%  BELOW NORMAL
-  11276500 Tuolumne R nr Hetch Hetchy 2026-10-15     57.70    36.60    51.60    57.00    63.50    67.54   101.2%  NORMAL
-  11284400 Big Creek nr Groveland     2026-10-15      0.00     0.00     0.00     0.00     0.00     0.00      --   NORMAL
-  11289650 Tuolumne R bl La Grange    2026-10-15    534.00   133.40   174.00   359.00   546.50   896.70   148.7%  NORMAL
-  11290000 Tuolumne R at Modesto      2026-10-15    230.00   155.40   235.75   403.00   689.25   920.90    57.1%  BELOW NORMAL
-  11264500 Merced R at Happy Isles    2026-10-15      4.07     3.54     5.90    11.05    21.23    67.61    36.8%  BELOW NORMAL
-  11266500 Merced R at Pohono Bridge  2026-10-15     14.50    12.31    14.98    24.25    44.43    77.08    59.8%  BELOW NORMAL
-  11303000 Stanislaus R at Ripon      2026-10-15    477.00   219.50   281.75   508.50   950.25  1489.00    93.8%  NORMAL
+  11274790 Tuolumne R Grand Canyon    2026-10-16      7.85     7.53    11.10    14.00    41.65   235.80    56.1%  BELOW NORMAL
+  11276500 Tuolumne R nr Hetch Hetchy 2026-10-16     57.70    36.60    51.60    57.50    63.50    67.58   100.3%  NORMAL
+  11284400 Big Creek nr Groveland     2026-10-16      0.00     0.00     0.00     0.00     0.00     0.01      --   NORMAL
+  11289650 Tuolumne R bl La Grange    2026-10-16   1210.00   140.20   175.00   359.00   556.50   920.60   337.0%  MUCH ABOVE NORMAL
+  11290000 Tuolumne R at Modesto      2026-10-16    548.00   161.40   237.50   434.00   689.00   908.90   126.3%  NORMAL
+  11264500 Merced R at Happy Isles    2026-10-16      3.60     3.54     5.93    11.15    21.50    87.84    32.3%  BELOW NORMAL
+  11266500 Merced R at Pohono Bridge  2026-10-16     14.20    12.31    15.15    24.65    49.25    96.92    57.6%  BELOW NORMAL
+  11303000 Stanislaus R at Ripon      2026-10-16    963.00   228.20   309.00   568.50   997.75  1489.00   169.4%  NORMAL
 
 SECTION II: LAST 30 DAYS VS NORMAL FOR THOSE DATES
   % NORMAL = 30-DAY TOTAL FLOW / TOTAL OF THE DAILY MEDIANS. TREND = LAST 7 DAYS VS THE 7 BEFORE, +/-10% OR MORE.
 
   SITE ID   STATION                    DAYS    MEAN CFS    MIN CFS    MAX CFS  % NORMAL DAYS<P10 DAYS>P90  7-DAY TREND
 ------------------------------------------------------------------------------------------------------------------------------------
-  11274790  Tuolumne R Grand Canyon      30        8.66       6.80      11.30     56.8%        0        0  STEADY
-  11276500  Tuolumne R nr Hetch Hetchy   30       64.13      56.80      76.60     96.5%        0        0  STEADY
+  11274790  Tuolumne R Grand Canyon      30        8.55       6.80      11.00     56.4%        0        0  STEADY
+  11276500  Tuolumne R nr Hetch Hetchy   30       63.75      56.80      76.60     97.1%        0        0  STEADY
   11284400  Big Creek nr Groveland       30        0.00       0.00       0.00       --         0        0  STEADY
-  11289650  Tuolumne R bl La Grange      30      220.00     171.00     534.00    104.6%        0        0  RISING      13.9%
-  11290000  Tuolumne R at Modesto        30      205.70     153.00     414.00     67.1%        0        0  STEADY
-  11264500  Merced R at Happy Isles      30        4.90       3.69       6.94     45.1%        8        0  STEADY
-  11266500  Merced R at Pohono Bridge    30       15.77      12.70      18.70     61.4%        0        0  STEADY
-  11303000  Stanislaus R at Ripon        30      362.00     159.00     665.00    112.8%        9        0  RISING      11.4%
+  11289650  Tuolumne R bl La Grange      30      255.97     171.00    1210.00    117.9%        0        1  RISING      82.3%
+  11290000  Tuolumne R at Modesto        30      218.07     153.00     548.00     69.9%        0        0  RISING      13.4%
+  11264500  Merced R at Happy Isles      30        4.78       3.60       6.79     44.4%        8        0  STEADY
+  11266500  Merced R at Pohono Bridge    30       15.62      12.70      18.30     61.2%        0        0  STEADY
+  11303000  Stanislaus R at Ripon        30      388.53     159.00     963.00    117.9%        8        0  RISING      15.3%
 
 SECTION III: WATERSHED BASINS
   GAGES ON ONE RIVER MEASURE THE SAME WATER, SO THEY ARE NOT ADDED. THE LOWEST GAGE IS WHAT LEAVES THE BASIN.
 
   BASIN       GAGES   LOWEST GAGE (BASIN OUTFLOW)       CFS  CLASS             MUCH BELOW  BELOW NORMAL  ABOVE MUCH ABOVE
 ------------------------------------------------------------------------------------------------------------------------------------
-  TUOLUMNE      5     Tuolumne R at Modesto          230.00  BELOW NORMAL               0      2      3      0          0
-  MERCED        2     Merced R at Pohono Bridge       14.50  BELOW NORMAL               0      2      0      0          0
-  STANISLAUS    1     Stanislaus R at Ripon          477.00  NORMAL                     0      0      1      0          0
+  TUOLUMNE      5     Tuolumne R at Modesto          548.00  NORMAL                     0      1      3      0          1
+  MERCED        2     Merced R at Pohono Bridge       14.20  BELOW NORMAL               0      2      0      0          0
+  STANISLAUS    1     Stanislaus R at Ripon          963.00  NORMAL                     0      0      1      0          0
 
 SECTION IV: RUN SUMMARY
 
